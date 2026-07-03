@@ -1,0 +1,20 @@
+{
+  "name": "plugin-codex",
+  "interface": {
+    "displayName": "Plugin Codex"
+  },
+  "plugins": [
+    {
+      "name": "engineering-discipline",
+      "source": {
+        "source": "local",
+        "path": "./plugins/engineering-discipline"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development"
+    }
+  ]
+}
