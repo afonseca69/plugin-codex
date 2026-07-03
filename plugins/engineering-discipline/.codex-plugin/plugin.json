@@ -1,0 +1,22 @@
+{
+  "name": "engineering-discipline",
+  "version": "0.1.0",
+  "description": "Codex-native engineering discipline skills and advisory hooks for risk routing, verified implementation, adversarial review, living docs, architecture, task planning, and Laravel conventions.",
+  "author": {
+    "name": "afonseca69"
+  },
+  "homepage": "https://github.com/afonseca69/plugin-codex",
+  "repository": "https://github.com/afonseca69/plugin-codex",
+  "license": "MIT",
+  "keywords": ["codex", "skills", "engineering-discipline", "verification", "hooks", "laravel"],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "Engineering Discipline",
+    "shortDescription": "Risk routing, verified implementation, adversarial review, and living docs for Codex.",
+    "longDescription": "A Codex-native adaptation of a disciplined engineering workflow. Default hooks are advisory-only; enforcing hooks are optional.",
+    "developerName": "afonseca69",
+    "category": "Development",
+    "websiteURL": "https://github.com/afonseca69/plugin-codex"
+  }
+}
