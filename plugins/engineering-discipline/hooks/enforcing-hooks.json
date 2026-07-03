@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${PLUGIN_ROOT}/hooks/verify_commit_gate.sh\"",
+            "statusMessage": "Enforcing commit verification gate"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${PLUGIN_ROOT}/hooks/verify_stop_gate.sh\"",
+            "statusMessage": "Checking unverified work before stop"
+          }
+        ]
+      }
+    ]
+  }
+}
