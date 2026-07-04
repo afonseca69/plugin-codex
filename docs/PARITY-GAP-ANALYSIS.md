@@ -19,17 +19,30 @@ It currently includes:
 - `plugins/engineering-discipline/.codex-plugin/plugin.json`
 - advisory hooks enabled by default
 - optional strict hooks kept out of default config
-- 8 first-class Codex skills
+- 21 first-class Codex skills
 
 Current Codex skills:
 
 - `architect-design`
+- `architect-refine`
+- `architect-review`
+- `filament-conventions`
 - `laravel-conventions`
 - `maestro-adversarial-verify`
 - `maestro-deep-analysis`
+- `maestro-deep-work`
 - `maestro-implement`
+- `maestro-journey`
+- `maestro-regression`
 - `maestro-route`
+- `prd-builder-bugfix`
+- `prd-builder-feature`
+- `prd-builder-prd`
+- `prd-builder-refine`
 - `scribe-docs-discipline`
+- `scribe-init`
+- `scribe-sync`
+- `scribe-verify`
 - `taskmanager-lite`
 
 ## Original Claude plugins
@@ -45,48 +58,40 @@ The original suite has six Claude Code plugins:
 
 The Codex port currently consolidates them into one plugin. This is acceptable for the first Codex-native package, but parity tracking must still preserve the original plugin boundaries conceptually.
 
-## Commands not yet ported as first-class Codex skills
+## Commands ported as first-class Codex skills
 
 ### Architect
 
-- `architect/commands/refine.md`
-- `architect/commands/review.md`
-
-`architect/commands/design.md` is partially represented by `architect-design`.
+- `architect/commands/design.md` -> `architect-design`
+- `architect/commands/refine.md` -> `architect-refine`
+- `architect/commands/review.md` -> `architect-review`
 
 ### Maestro
 
-- `maestro/commands/deep-work.md`
-- `maestro/commands/journey.md`
-- `maestro/commands/regression.md`
-
-These are not yet first-class Codex skills.
-
-Already represented:
-
 - `maestro/commands/adversarial-verify.md` -> `maestro-adversarial-verify`
 - `maestro/commands/deep-analysis.md` -> `maestro-deep-analysis`
+- `maestro/commands/deep-work.md` -> `maestro-deep-work`
 - `maestro/commands/implement.md` -> `maestro-implement`
+- `maestro/commands/journey.md` -> `maestro-journey`
+- `maestro/commands/regression.md` -> `maestro-regression`
 - `maestro/commands/route.md` -> `maestro-route`
 
 ### PRD Builder
 
-None of the original PRD Builder commands have been ported yet:
-
-- `prd-builder/commands/bugfix.md`
-- `prd-builder/commands/feature.md`
-- `prd-builder/commands/prd.md`
-- `prd-builder/commands/refine.md`
+- `prd-builder/commands/bugfix.md` -> `prd-builder-bugfix`
+- `prd-builder/commands/feature.md` -> `prd-builder-feature`
+- `prd-builder/commands/prd.md` -> `prd-builder-prd`
+- `prd-builder/commands/refine.md` -> `prd-builder-refine`
 
 ### Scribe
 
-The original Scribe command set has not been ported as first-class skills yet:
+- `scribe/commands/init.md` -> `scribe-init`
+- `scribe/commands/sync.md` -> `scribe-sync`
+- `scribe/commands/verify.md` -> `scribe-verify`
 
-- `scribe/commands/init.md`
-- `scribe/commands/sync.md`
-- `scribe/commands/verify.md`
+`scribe-docs-discipline` remains the general docs discipline skill.
 
-`scribe-docs-discipline` currently covers only the general discipline.
+## Commands not yet ported as first-class Codex skills
 
 ### TaskManager
 
@@ -104,13 +109,14 @@ The original TaskManager command set has not been ported as a real engine yet:
 
 `taskmanager-lite` is only a planning workflow, not parity with the SQLite-backed original.
 
-## Skills not yet ported as first-class Codex skills
+## Skill coverage and remaining gaps
 
 ### Laravel
 
-- `laravel/skills/filament-conventions/SKILL.md`
+Already represented:
 
-`laravel-conventions` exists, but Filament-specific guidance is not yet first-class.
+- `laravel/skills/filament-conventions/SKILL.md` -> `filament-conventions`
+- `laravel/skills/laravel-conventions/SKILL.md` -> `laravel-conventions`
 
 ### Maestro discipline skills
 
@@ -128,16 +134,13 @@ The original always-on discipline skills are not yet first-class Codex skills:
 
 ### Maestro process skills
 
-Partially or not yet ported:
-
-- `maestro/skills/deep-work/SKILL.md`
-- `maestro/skills/regression/SKILL.md`
-
 Already represented:
 
 - `maestro/skills/adversarial-verify/SKILL.md`
 - `maestro/skills/deep-analysis/SKILL.md`
+- `maestro/skills/deep-work/SKILL.md`
 - `maestro/skills/implementation/SKILL.md`
+- `maestro/skills/regression/SKILL.md`
 - `maestro/skills/route/SKILL.md`
 
 ### PRD Builder
@@ -219,7 +222,9 @@ This is the largest remaining feature gap.
 
 ### Phase 1 — Finish first-class Codex skill coverage
 
-Add missing high-value skills without porting engines yet:
+Status: completed in Codex plugin `0.1.4`.
+
+Added high-value skills without porting engines:
 
 - `maestro-deep-work`
 - `maestro-regression`
@@ -232,6 +237,8 @@ Add missing high-value skills without porting engines yet:
 - `scribe-sync`
 - `scribe-verify`
 - `filament-conventions`
+- `architect-refine`
+- `architect-review`
 
 ### Phase 2 — Port docs/templates and reference material
 
@@ -262,4 +269,4 @@ Port SQLite schema, migrations, query catalog, tests, and command-like skills as
 
 The repository is now a functional Codex plugin, but not yet a full parity port of the original `mwguerra/plugins` suite.
 
-The next safe step is Phase 1: add the missing first-class Codex skills while keeping hooks disabled or advisory-only.
+The next safe step is Phase 2: add selected reference material and templates under the Codex skill directories while keeping hooks disabled or advisory-only and leaving the TaskManager engine for a separate tested phase.
