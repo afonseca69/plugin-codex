@@ -90,7 +90,7 @@ This initial port has been checked for:
 - Bash syntax for hook scripts;
 - Codex-native paths and environment names in the new files.
 
-It has **not** been smoke-tested inside a live Codex installation from this environment. Before relying on enforcing hooks, run the smoke checks in [`docs/VERIFY.md`](docs/VERIFY.md).
+It has passed local Codex CLI installation checks, advisory hook smoke tests, and optional strict hook script smoke tests on WSL2. Before relying on enforcing hooks globally, still validate them inside your target live Codex workflow and review them in `/hooks`.
 
 ## Attribution and license
 

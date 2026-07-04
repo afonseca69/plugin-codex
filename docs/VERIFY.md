@@ -27,3 +27,18 @@ Confirm:
 - Stop hook does not loop.
 
 Do not claim strict hooks are production-ready until these checks pass in the target environment.
+
+
+## Current smoke-test status
+
+Verified on WSL2 with Codex CLI `0.142.5` using installed plugin cache `0.1.3`:
+
+- marketplace added from local repository;
+- `engineering-discipline@plugin-codex` installed and enabled;
+- installed cache JSON/Bash/Python checks passed;
+- advisory hooks returned the expected Codex hook JSON;
+- optional commit gate denied an unverified staged commit and allowed it after ledger evidence;
+- optional Stop gate denied unverified tracked work;
+- Stop loop guard allowed stop when `stop_hook_active=true`;
+- ledger hash behavior was corrected so `--cached` does not hash unstaged-only work;
+- ledger coverage lookup was corrected so older records for other hashes do not prevent matching evidence from being recognized.

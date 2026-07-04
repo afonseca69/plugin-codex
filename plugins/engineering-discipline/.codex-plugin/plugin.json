@@ -1,6 +1,6 @@
 {
   "name": "engineering-discipline",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "description": "Codex-native engineering discipline skills and advisory hooks for risk routing, verified implementation, adversarial review, living docs, architecture, task planning, and Laravel conventions.",
   "author": {
     "name": "afonseca69"

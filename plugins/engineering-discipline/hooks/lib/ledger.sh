@@ -33,12 +33,17 @@ hash_change() {
 
   local payload status
   case "$scope" in
-    --cached) payload="$(git diff --binary --cached || true)" ;;
-    --head) payload="$(git diff --binary HEAD -- || true)" ;;
+    --cached)
+      payload="$(git diff --binary --cached || true)"
+      status="$(git diff --cached --name-status || true)"
+      ;;
+    --head)
+      payload="$(git diff --binary HEAD -- || true)"
+      status="$(git status --porcelain=v1 --untracked-files=no || true)"
+      ;;
     *) echo "usage: ledger.sh hash [--cached|--head]" >&2; return 2 ;;
   esac
 
-  status="$(git status --porcelain=v1 --untracked-files=no || true)"
   if [ -z "$payload" ] && [ -z "$status" ]; then
     echo EMPTY
     return 0
@@ -67,47 +72,52 @@ append_record() {
 }
 
 covered() {
-  local ref="$1" file tests adversarial waiver
+  local ref="$1" file
   file="$(ledger_file)"
   [ -f "$file" ] || { echo "missing ledger" >&2; return 1; }
-  tests=0; adversarial=0; waiver=0
-  while IFS= read -r line; do
-    python3 - "$ref" "$line" <<'PY'
-import json, sys
-ref = sys.argv[1]
-line = sys.argv[2]
-try:
-    row = json.loads(line)
-except Exception:
-    sys.exit(1)
-if row.get("ref") != ref:
-    sys.exit(1)
-print(f"{row.get('kind','')}={row.get('status','')}")
-PY
-  done < "$file" | while IFS= read -r pair; do
-    case "$pair" in
-      tests=pass) echo tests ;;
-      adversarial=pass) echo adversarial ;;
-      waiver=waived) echo waiver ;;
-    esac
-  done | sort -u | {
-    while IFS= read -r item; do
-      case "$item" in
-        tests) tests=1 ;;
-        adversarial) adversarial=1 ;;
-        waiver) waiver=1 ;;
-      esac
-    done
-    if [ "$waiver" = 1 ] || { [ "$tests" = 1 ] && [ "$adversarial" = 1 ]; }; then
-      echo covered
-      exit 0
-    fi
-    missing=""
-    [ "$tests" = 0 ] && missing="${missing} tests"
-    [ "$adversarial" = 0 ] && missing="${missing} adversarial"
-    echo "missing:${missing}" >&2
-    exit 1
-  }
+
+  python3 - "$file" "$ref" <<'PY2'
+import json
+import sys
+
+file_path, target_ref = sys.argv[1], sys.argv[2]
+tests = False
+adversarial = False
+waiver = False
+
+with open(file_path, encoding="utf-8") as handle:
+    for line in handle:
+        try:
+            row = json.loads(line)
+        except Exception:
+            continue
+
+        if row.get("ref") != target_ref:
+            continue
+
+        kind = row.get("kind")
+        status = row.get("status")
+
+        if kind == "tests" and status == "pass":
+            tests = True
+        elif kind == "adversarial" and status == "pass":
+            adversarial = True
+        elif kind == "waiver" and status == "waived":
+            waiver = True
+
+if waiver or (tests and adversarial):
+    print("covered")
+    sys.exit(0)
+
+missing = []
+if not tests:
+    missing.append("tests")
+if not adversarial:
+    missing.append("adversarial")
+
+print("missing:" + " ".join(missing), file=sys.stderr)
+sys.exit(1)
+PY2
 }
 
 current_ref() {
