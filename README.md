@@ -16,7 +16,7 @@ This repository is not a direct Claude Code plugin copy. It is a Codex-oriented 
 
 The upstream project was built for Claude Code and uses `.claude-plugin`, slash commands, Claude-oriented hooks, and Claude-oriented agent files. Codex now has a compatible but different extension model: plugins are packaged with `.codex-plugin/plugin.json`, skills live as `SKILL.md` folders, repo marketplaces live under `.agents/plugins/marketplace.json`, and project instructions live in `AGENTS.md`.
 
-This port keeps the useful workflow ideas — route work by risk, implement with verification, verify adversarially, keep docs current, design before irreversible changes, and use Laravel conventions when relevant — while avoiding a false promise that Claude commands or Claude subagents run unchanged in Codex.
+This port keeps the useful workflow ideas — route work by risk, implement with verification, verify adversarially, keep docs current, design before irreversible changes, shape PRDs, and use Laravel conventions when relevant — while avoiding a false promise that Claude commands or Claude subagents run unchanged in Codex.
 
 ## Install from Codex CLI
 
@@ -49,10 +49,23 @@ The marketplace points to `./plugins/engineering-discipline`.
 | `maestro-implement` | Deliver a code change through intake, investigation, plan, build, verify, and honest delivery. |
 | `maestro-adversarial-verify` | Run a refute-first verification pass before accepting a conclusion or change. |
 | `maestro-deep-analysis` | Audit a codebase or subsystem and produce an evidence-backed roadmap. |
+| `maestro-deep-work` | Orchestrate broad multi-place work through plan, refutation, execution, synthesis, and verification. |
+| `maestro-regression` | Prove a change did not break existing behavior through suite evidence and blast-radius review. |
+| `maestro-journey` | Show one feature's read-only path from PRD through design, verification, and shipped status. |
+| `prd-builder-prd` | Turn a rough product idea into a full PRD under `docs/prd/`. |
+| `prd-builder-feature` | Create a focused PRD for a feature inside an existing product. |
+| `prd-builder-bugfix` | Document a bug fix with reproduction, root cause, rollback, and regression coverage. |
+| `prd-builder-refine` | Improve an existing PRD by filling weak or missing requirements. |
 | `scribe-docs-discipline` | Keep `docs/` and `AGENTS.md` accurate as living project truth. |
+| `scribe-init` | Bootstrap a living `docs/` source of truth idempotently. |
+| `scribe-sync` | Curate recent work into `docs/` and verify the result. |
+| `scribe-verify` | Adversarially verify docs against code, decisions, incidents, and staleness. |
 | `architect-design` | Produce right-sized architecture and ADRs before implementation. |
+| `architect-refine` | Evolve existing architecture while preserving ADR history. |
+| `architect-review` | Adversarially review architecture and ADRs with read-only findings. |
 | `taskmanager-lite` | Decompose PRDs/features into verifiable tasks without requiring the upstream SQLite engine. |
 | `laravel-conventions` | Apply Laravel/Filament/Pest conventions safely when the target project is Laravel. |
+| `filament-conventions` | Apply Filament-specific panel, resource, auth, and verification conventions. |
 
 Invoke skills explicitly with `$skill-name` or let Codex select them when your task matches the skill description.
 

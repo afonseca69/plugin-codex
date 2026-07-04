@@ -10,8 +10,10 @@ python3 -m json.tool plugins/engineering-discipline/.codex-plugin/plugin.json >/
 python3 -m json.tool plugins/engineering-discipline/hooks/hooks.json >/dev/null
 python3 -m json.tool plugins/engineering-discipline/hooks/enforcing-hooks.json >/dev/null
 bash -n plugins/engineering-discipline/hooks/*.sh
-python3 -m py_compile plugins/engineering-discipline/hooks/lib/json_value.py
+PYTHONDONTWRITEBYTECODE=1 python3 -m py_compile plugins/engineering-discipline/hooks/lib/json_value.py
+git diff --check
 find plugins/engineering-discipline/skills -name SKILL.md -print | sort
+find . -type d -name __pycache__ -print
 ```
 
 ## Strict hooks
@@ -29,9 +31,9 @@ Confirm:
 Do not claim strict hooks are production-ready until these checks pass in the target environment.
 
 
-## Current smoke-test status
+## Live hook smoke-test status
 
-Verified on WSL2 with Codex CLI `0.142.5` using installed plugin cache `0.1.3`:
+Last live hook smoke test was verified on WSL2 with Codex CLI `0.142.5` using installed plugin cache `0.1.3`. The 0.1.4 skill-only update did not change hook behavior:
 
 - marketplace added from local repository;
 - `engineering-discipline@plugin-codex` installed and enabled;

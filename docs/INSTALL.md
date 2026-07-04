@@ -26,9 +26,22 @@ Expected skills:
 - `maestro-implement`
 - `maestro-adversarial-verify`
 - `maestro-deep-analysis`
+- `maestro-deep-work`
+- `maestro-regression`
+- `maestro-journey`
+- `prd-builder-prd`
+- `prd-builder-feature`
+- `prd-builder-bugfix`
+- `prd-builder-refine`
 - `scribe-docs-discipline`
+- `scribe-init`
+- `scribe-sync`
+- `scribe-verify`
 - `architect-design`
+- `architect-refine`
+- `architect-review`
 - `taskmanager-lite`
 - `laravel-conventions`
+- `filament-conventions`
 
 The default hook set is advisory-only.
