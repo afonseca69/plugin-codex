@@ -40,6 +40,12 @@ Cover the relevant subset:
 6. Challenge the findings with a refute-first pass.
 7. Produce a prioritized roadmap.
 
+Useful references:
+
+- `references/audit-plan-template.md` for area planning, reader schema, refute pass,
+  synthesis, and publish flow.
+- `references/output-structure.md` for the `docs/deep-analysis/` publishing contract.
+
 ## Output
 
 Use this structure:

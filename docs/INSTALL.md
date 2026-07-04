@@ -45,3 +45,8 @@ Expected skills:
 - `filament-conventions`
 
 The default hook set is advisory-only.
+
+The installed plugin also includes passive references and templates under relevant skill
+directories, including architecture heuristics, PRD templates, Scribe docs templates,
+TaskManager-lite planning examples, deep-analysis output structure, and Filament v5 recipes.
+They do not add skills, enable strict hooks, or install the upstream SQLite TaskManager engine.

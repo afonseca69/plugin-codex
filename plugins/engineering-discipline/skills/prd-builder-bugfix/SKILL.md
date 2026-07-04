@@ -27,6 +27,11 @@ why it happens, how it will be fixed, and how it will never silently return.
 8. **Handoff.** Use `maestro-implement` for the fix and `maestro-regression` before
    closure.
 
+Useful reference:
+
+- `../prd-builder-prd/references/question-bank.md` for the bugfix adaptive shortcut:
+  reproduction, impact, root cause, fix strategy, rollback, and regression checks.
+
 ## Output shape
 
 ```text

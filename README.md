@@ -8,6 +8,8 @@ This repository is not a direct Claude Code plugin copy. It is a Codex-oriented 
 - one installable Codex plugin at `plugins/engineering-discipline`;
 - `.codex-plugin/plugin.json` metadata;
 - reusable Codex skills under `skills/*/SKILL.md`;
+- selected Codex-adapted references and templates under skill-local `references/` and
+  `templates/` directories;
 - advisory hooks enabled by default;
 - optional enforcing verification hooks documented but not enabled by default;
 - `AGENTS.md` guidance for working on this repository.
@@ -69,6 +71,23 @@ The marketplace points to `./plugins/engineering-discipline`.
 
 Invoke skills explicitly with `$skill-name` or let Codex select them when your task matches the skill description.
 
+## Reference and template material
+
+The plugin also ships passive skill-local references and templates adapted from the upstream
+suite:
+
+| Area | Included material |
+|---|---|
+| Architecture | Design heuristics and seam catalog. |
+| Maestro | Implementation process and deep-analysis audit/publish templates. |
+| PRD Builder | Question bank, default stack profile, design-review lenses, PRD template. |
+| Scribe | Canonical docs layout plus STATUS, ADR, incident, roadmap, open-question templates. |
+| TaskManager-lite | Planning question bank and PRD-to-task example without the SQLite engine. |
+| Filament | Filament v5 recipes, with version verification required in the target project. |
+
+These files are content for skills to consult. They do not add new skills, enable hooks, or
+install the upstream TaskManager engine.
+
 ## Hooks policy
 
 The default bundled hooks are **advisory-only**:
@@ -96,7 +115,7 @@ NOTICE.md
 
 ## Verification status
 
-This initial port has been checked for:
+This port has been checked for:
 
 - valid JSON manifests;
 - valid skill frontmatter presence;

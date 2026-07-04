@@ -20,6 +20,7 @@ It currently includes:
 - advisory hooks enabled by default
 - optional strict hooks kept out of default config
 - 21 first-class Codex skills
+- selected Codex-adapted references and templates under existing skill directories
 
 Current Codex skills:
 
@@ -44,6 +45,19 @@ Current Codex skills:
 - `scribe-sync`
 - `scribe-verify`
 - `taskmanager-lite`
+
+Current Codex reference/template coverage:
+
+- `architect-design/references/`: design heuristics and seam catalog.
+- `filament-conventions/references/`: Filament v5 recipes with target-project version checks.
+- `maestro-deep-analysis/references/`: audit plan and `docs/deep-analysis/` output structure.
+- `maestro-implement/references/`: expanded implementation process.
+- `prd-builder-prd/references/` and `templates/`: question bank, default stack profile,
+  design-review lenses, and PRD template.
+- `scribe-docs-discipline/references/` and `templates/`: canonical docs layout plus docs
+  README, STATUS, ADR, incident, roadmap, and open-question templates.
+- `taskmanager-lite/references/`: planning question bank and PRD-to-task example without the
+  upstream SQLite engine.
 
 ## Original Claude plugins
 
@@ -242,7 +256,28 @@ Added high-value skills without porting engines:
 
 ### Phase 2 — Port docs/templates and reference material
 
-Add references and templates from the original plugins under Codex skill directories.
+Status: completed in Codex plugin `0.1.5`.
+
+Added selected reference/template material from the original plugins under existing Codex skill
+directories:
+
+- architecture design heuristics and seam catalog;
+- Filament v5 recipes, with explicit target-project version verification;
+- Maestro deep-analysis audit plan and publish structure;
+- expanded Maestro implementation process;
+- PRD Builder question bank, default stack profile, design review, and PRD template;
+- Scribe docs layout and templates for README, STATUS, ADR, incident, roadmap, and open
+  questions;
+- TaskManager-lite planning question bank and PRD-to-task example.
+
+Deliberate exclusions in this phase:
+
+- no hook behavior changes;
+- no enforcing-hook enablement;
+- no full TaskManager SQLite engine, schemas, migrations, query catalog, tests, or command
+  engine;
+- no external integrations, background jobs, or unrelated tooling;
+- no new skills beyond the existing 21.
 
 ### Phase 3 — Port advisory hooks
 
@@ -267,6 +302,10 @@ Port SQLite schema, migrations, query catalog, tests, and command-like skills as
 
 ## Current verdict
 
-The repository is now a functional Codex plugin, but not yet a full parity port of the original `mwguerra/plugins` suite.
+The repository is now a functional Codex plugin with Phase 1 skill coverage and Phase 2
+reference/template coverage, but not yet a full parity port of the original `mwguerra/plugins`
+suite.
 
-The next safe step is Phase 2: add selected reference material and templates under the Codex skill directories while keeping hooks disabled or advisory-only and leaving the TaskManager engine for a separate tested phase.
+The next safe step is Phase 3: add Codex-native advisory versions of selected original hooks as
+a separate reviewable change, while keeping defaults advisory-only and leaving the TaskManager
+engine for a separate tested phase.

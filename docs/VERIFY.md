@@ -33,7 +33,7 @@ Do not claim strict hooks are production-ready until these checks pass in the ta
 
 ## Live hook smoke-test status
 
-Last live hook smoke test was verified on WSL2 with Codex CLI `0.142.5` using installed plugin cache `0.1.3`. The 0.1.4 skill-only update did not change hook behavior:
+Last live hook smoke test was verified on WSL2 with Codex CLI `0.142.5` using installed plugin cache `0.1.3`. The 0.1.4 skill-only update and 0.1.5 reference/template update did not change hook behavior:
 
 - marketplace added from local repository;
 - `engineering-discipline@plugin-codex` installed and enabled;

@@ -11,9 +11,13 @@ This repository adapts the engineering workflow ideas from `mwguerra/plugins` to
 - Default hooks are advisory.
 - Stricter hooks are opt-in and require live Codex smoke testing.
 - The full upstream SQLite task engine is not included in this first port; `taskmanager-lite` provides a planning workflow instead.
+- Selected upstream references and templates now live under Codex skill-local
+  `references/` and `templates/` directories, rewritten for `AGENTS.md`, Codex skills,
+  `docs/`, evidence, and verification language.
 
 ## Future work
 
 - Port the full task engine as a separate tested slice.
-- Add richer templates for PRDs, ADRs, incidents, and architecture docs.
+- Convert or deliberately replace upstream agent personas with a Codex-native strategy.
+- Port additional advisory hooks only after a separate focused design and smoke test.
 - Add live Codex smoke-test evidence for strict hooks.

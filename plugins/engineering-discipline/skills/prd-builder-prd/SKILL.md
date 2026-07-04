@@ -41,6 +41,14 @@ truth that downstream design, planning, implementation, and verification use.
 9. **Handoff.** Recommend `architect-design` for non-trivial or irreversible work, then
    `taskmanager-lite` to decompose implementation tasks.
 
+Useful references:
+
+- `references/question-bank.md` for interview categories and adaptive shortcuts.
+- `references/default-stack.md` for a greenfield SaaS default profile that must be
+  verified before adoption.
+- `references/design-review.md` for the silent two-lens review.
+- `templates/prd-template.md` for the final PRD structure.
+
 ## Recommended PRD shape
 
 ```text
