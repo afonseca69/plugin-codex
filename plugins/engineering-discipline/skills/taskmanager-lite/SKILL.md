@@ -5,12 +5,20 @@ description: Decompose a PRD, feature, or roadmap item into dependency-ordered, 
 
 # Taskmanager Lite
 
-This is a Codex-native planning workflow, not the full upstream SQLite TaskManager runtime.
+This is a Codex-native planning workflow, not the full upstream SQLite
+TaskManager runtime.
 
-Passive upstream TaskManager SQLite engine artifacts are included under
-`references/taskmanager-engine/` for schema/query/migration/test reference and
-standalone validation. They are not Codex command wrappers, they do not auto-run
-TaskManager, and full runtime wrappers are future work.
+Upstream TaskManager SQLite engine artifacts are included under
+`references/taskmanager-engine/` for schema/query/migration/test reference,
+standalone validation, and an explicit manual wrapper. The wrapper lives at
+`references/taskmanager-engine/bin/taskmanager-engine.sh` and supports only safe
+manual commands: `init`, `status`, `next`, `export-json`, `run-sql-tests`, and
+`help`.
+
+The wrapper is not registered as a Codex command, does not enable hooks, does
+not auto-run TaskManager, and does not implement the full upstream command set.
+Use the database-free planning format below unless the user explicitly asks to
+initialize or inspect the copied SQLite engine.
 
 ## Task shape
 
@@ -43,8 +51,9 @@ Useful references:
 - `references/agent-taskmanager.md` for the fuller Codex-native planning persona.
 - `references/agent-verifier.md` for acceptance-criteria verification guidance without
   an active SQLite runtime.
-- `references/taskmanager-engine/README.md` for the passive SQLite schema, migrations,
-  query catalog, copied tests, validation commands, and remaining runtime gaps.
+- `references/taskmanager-engine/README.md` and `references/taskmanager-engine/USAGE.md`
+  for the SQLite schema, migrations, query catalog, copied tests, manual wrapper,
+  validation commands, and remaining runtime gaps.
 
 ## Output format
 

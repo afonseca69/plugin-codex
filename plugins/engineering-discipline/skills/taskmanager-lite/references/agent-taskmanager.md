@@ -4,8 +4,11 @@ Adapted from `taskmanager/agents/taskmanager.md` in the upstream
 `mwguerra/plugins` project. See `NOTICE.md` and `LICENSE` for attribution and
 license terms.
 
-This is a Codex-native reference for `taskmanager-lite`, not the upstream
-SQLite-backed TaskManager engine and not an automatically executed agent.
+This is a Codex-native reference for `taskmanager-lite`, not the full upstream
+SQLite-backed TaskManager runtime and not an automatically executed agent. The
+separate `taskmanager-engine/` artifacts include a manual wrapper for explicit
+SQLite initialization and inspection, but this persona remains a database-free
+planning guide.
 
 ## Role
 
@@ -16,7 +19,7 @@ runtime.
 
 ## Deliberate Exclusions
 
-Do not port or imply support for:
+When acting as this planning persona, do not depend on:
 
 - `.taskmanager/taskmanager.db`;
 - SQLite schemas, migrations, query catalogs, or views;
@@ -27,7 +30,8 @@ Do not port or imply support for:
 - background jobs or external integrations.
 
 Use repository docs, issues, PRDs, and the Codex conversation as the planning
-state unless the user explicitly asks for a separate future engine project.
+state unless the user explicitly asks to use the separate engine artifacts or a
+future engine project.
 
 ## Planning Inputs
 

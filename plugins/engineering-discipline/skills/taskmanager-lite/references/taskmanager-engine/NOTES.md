@@ -1,4 +1,4 @@
-# Phase 5A Notes
+# Phase 5A/5B Notes
 
 ## Source Files
 
@@ -15,6 +15,12 @@ Copied from `../mwguerra-plugins/taskmanager`:
 Relevant upstream TaskManager README and skill files were inspected to document
 the engine accurately, but their command/runtime behavior was not ported.
 
+Phase 5B adds Codex-local wrapper files around the copied artifacts:
+
+- `bin/taskmanager-engine.sh`
+- `tests/test_wrapper_cli.sh`
+- `USAGE.md`
+
 ## Adaptations
 
 - `tests/test_sql_queries.sh` now reads the milestone and PRD verify guard SQL
@@ -27,18 +33,23 @@ the engine accurately, but their command/runtime behavior was not ported.
 
 No schema, query catalog, migration logic, or default config content was changed.
 
+The Phase 5B wrapper is deliberately small. It supports manual `init`,
+`status`, `next`, `export-json`, `run-sql-tests`, and `help` commands only. It
+does not register Codex commands or change hook behavior.
+
 ## Remaining Gaps
 
-Phase 5A deliberately leaves these out:
+Phase 5B deliberately leaves these out:
 
-- Codex command wrappers for init, plan, run, verify, show, update, export,
-  research, or memory.
+- First-class Codex command registration.
+- Upstream TaskManager command parity for `plan`, `run`, `verify`, `show`,
+  `update`, `research`, or `memory`.
 - Automatic TaskManager execution.
 - Hook integration or hook enablement.
 - Background jobs or external integrations.
 - Repository migrations beyond the copied TaskManager SQLite migration scripts.
 - Full parity claims for the upstream TaskManager runtime.
 
-Future Phase 5B/5C work can decide whether to expose these artifacts through
+Future work can decide whether to expose these artifacts through first-class
 Codex-native commands or skills, and should add runtime tests before making any
-parity claim.
+broader parity claim.

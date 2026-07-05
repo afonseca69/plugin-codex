@@ -14,6 +14,8 @@ python3 -m json.tool plugins/engineering-discipline/skills/taskmanager-lite/refe
 bash -n plugins/engineering-discipline/hooks/*.sh
 bash -n plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/schemas/migrate-v4.0-to-v4.1.sh
 bash -n plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/schemas/migrate-v4.1-to-v4.2.sh
+bash -n plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh
+bash -n plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/tests/test_wrapper_cli.sh
 bash -n plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/tests/test_sql_queries.sh
 bash -n plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/tests/test_lifecycle_e2e.sh
 python3 - <<'PY'
@@ -35,8 +37,9 @@ The TaskManager SQLite engine artifacts are passive files under:
 plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine
 ```
 
-They include schema/config, migrations, query catalog, and copied tests. They do not install
-Codex commands, enable hooks, or auto-run TaskManager.
+They include schema/config, migrations, query catalog, copied tests, and a manual wrapper at
+`bin/taskmanager-engine.sh`. The wrapper does not install Codex commands, enable hooks, or
+auto-run TaskManager.
 
 If `sqlite3` is installed, run the copied SQL suites from the artifact directory:
 
@@ -44,12 +47,29 @@ If `sqlite3` is installed, run the copied SQL suites from the artifact directory
 cd plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine
 bash tests/test_sql_queries.sh
 bash tests/test_lifecycle_e2e.sh
+bash tests/test_wrapper_cli.sh
 ```
 
-Latest WSL2 result for installed plugin cache `0.1.8`: `test_sql_queries.sh` passed 285/0 and `test_lifecycle_e2e.sh` passed 30/0.
+Manual wrapper smoke test in a disposable temp directory:
 
-Passing these suites validates the standalone copied SQLite artifacts only. Full TaskManager
-runtime parity still requires future Codex wrappers and runtime tests.
+```bash
+ENGINE=plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh
+TMP=$(mktemp -d)
+"$ENGINE" init "$TMP"
+test -f "$TMP/.taskmanager/taskmanager.db"
+"$ENGINE" status "$TMP"
+"$ENGINE" next "$TMP"
+"$ENGINE" export-json "$TMP"
+"$ENGINE" run-sql-tests
+rm -rf "$TMP"
+```
+
+Latest WSL2 result for plugin `0.1.9`: `test_sql_queries.sh` passed 285/0,
+`test_lifecycle_e2e.sh` passed 30/0, and `test_wrapper_cli.sh` passed 19/0.
+
+Passing these suites validates the standalone copied SQLite artifacts and the limited manual
+wrapper only. Full TaskManager runtime parity still requires a broader Codex command/runtime
+design and tests.
 
 ## Extended advisory hooks
 
@@ -82,7 +102,7 @@ Do not claim strict hooks are production-ready until these checks pass in the ta
 
 ## Live hook smoke-test status
 
-Last live hook smoke test was verified on WSL2 with Codex CLI `0.142.5` using installed plugin cache `0.1.3`. The 0.1.4 skill-only update, 0.1.5 reference/template update, 0.1.7 agent/persona reference update, and 0.1.8 passive TaskManager engine artifact update did not change default hook behavior. Version 0.1.6 adds optional extended advisory hooks, but does not change `hooks/hooks.json`:
+Last live hook smoke test was verified on WSL2 with Codex CLI `0.142.5` using installed plugin cache `0.1.3`. The 0.1.4 skill-only update, 0.1.5 reference/template update, 0.1.7 agent/persona reference update, 0.1.8 passive TaskManager engine artifact update, and 0.1.9 manual TaskManager wrapper update did not change default hook behavior. Version 0.1.6 adds optional extended advisory hooks, but does not change `hooks/hooks.json`:
 
 - marketplace added from local repository;
 - `engineering-discipline@plugin-codex` installed and enabled;

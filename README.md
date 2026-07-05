@@ -11,8 +11,8 @@ This repository is not a direct Claude Code plugin copy. It is a Codex-oriented 
 - selected Codex-adapted references and templates under skill-local `references/` and
   `templates/` directories;
 - passive agent/persona reference guides adapted for Codex skill workflows;
-- passive TaskManager SQLite engine artifacts under `taskmanager-lite` for schema,
-  migration, query, and copied-test reference;
+- TaskManager SQLite engine artifacts under `taskmanager-lite` for schema,
+  migration, query, copied-test reference, and a small manual wrapper;
 - a small advisory hook set enabled by default;
 - optional extended advisory hooks documented but not enabled by default;
 - optional enforcing verification hooks documented but not enabled by default;
@@ -86,18 +86,20 @@ suite:
 | Maestro | Implementation process, implementer persona, and deep-analysis audit/publish templates. |
 | PRD Builder | Question bank, default stack profile, design-review lenses, PRD interviewer persona, PRD template. |
 | Scribe | Canonical docs layout plus STATUS, ADR, incident, roadmap, open-question templates, doc curator persona, and doc verifier persona. |
-| TaskManager-lite | Planning question bank, PRD-to-task example, planning persona, verifier persona, and passive TaskManager SQLite engine artifacts. |
+| TaskManager-lite | Planning question bank, PRD-to-task example, planning persona, verifier persona, TaskManager SQLite engine artifacts, and a manual engine wrapper. |
 | Filament | Filament v5 recipes, with version verification required in the target project. |
 
 These files are content for skills to consult. They do not add new skills, enable hooks, run
-automatic agents, run TaskManager, or install command wrappers. See
+automatic agents, or auto-run TaskManager. See
 [`docs/AGENT-STRATEGY.md`](docs/AGENT-STRATEGY.md) for how upstream agent prompts are represented
 as Codex reference/persona guides.
 
 The TaskManager engine artifacts live at
 `plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/`. They
-include upstream schema/config, migrations, query catalog, and copied SQL test assets as passive
-reference/runtime files. They are not a full Codex TaskManager runtime.
+include upstream schema/config, migrations, query catalog, copied SQL test assets, and a manual
+wrapper at `bin/taskmanager-engine.sh`. The wrapper supports explicit `init`, `status`, `next`,
+`export-json`, and `run-sql-tests` commands, but it is not registered as a Codex command and is
+not a full TaskManager runtime.
 
 ## Hooks policy
 
@@ -131,21 +133,26 @@ NOTICE.md
 
 ## Verification status
 
-Version `0.1.8` adds passive TaskManager SQLite engine artifacts. It has been checked for:
+Version `0.1.9` adds safe, opt-in TaskManager engine wrapper scripts around the copied SQLite
+artifacts. It has been checked for:
 
 - valid JSON manifests;
 - valid skill frontmatter presence;
 - Bash syntax for hook scripts;
+- Bash syntax for the manual TaskManager wrapper and wrapper test;
 - Bash syntax for copied TaskManager migration and test scripts;
 - JSON validity for the copied TaskManager default config;
 - Python helper syntax;
 - no generated `__pycache__` directories;
 - standalone copied TaskManager SQL tests passed on WSL2 with `sqlite3`: `test_sql_queries.sh` 285/0 and `test_lifecycle_e2e.sh` 30/0.
+- wrapper smoke/regression tests passed on WSL2 with `sqlite3`: `test_wrapper_cli.sh` 19/0,
+  including `init`, `status`, `next`, `export-json`, and wrapper-driven `run-sql-tests`.
 
-Hook behavior is unchanged from `0.1.7`: default hooks remain advisory-only, optional extended
-advisory hooks remain opt-in, and strict hooks remain opt-in. TaskManager commands/wrappers are
-not included in this release. Before relying on enforcing hooks globally, still validate them
-inside your target live Codex workflow and review them in `/hooks`.
+Hook behavior is unchanged from `0.1.8`: default hooks remain advisory-only, optional extended
+advisory hooks remain opt-in, and strict hooks remain opt-in. The TaskManager wrapper is manual
+only and does not claim full upstream TaskManager runtime parity. Before relying on enforcing
+hooks globally, still validate them inside your target live Codex workflow and review them in
+`/hooks`.
 
 ## Attribution and license
 
