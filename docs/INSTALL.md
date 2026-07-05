@@ -51,5 +51,11 @@ by default. Hooks can be left disabled or untrusted if you only want the skills 
 The installed plugin also includes passive references, templates, and agent/persona guides
 under relevant skill directories, including architecture heuristics, PRD templates, Scribe
 docs templates, TaskManager-lite planning examples, deep-analysis output structure, and
-Filament v5 recipes. They do not add skills, enable strict hooks, run automatic agents, or
-install the upstream SQLite TaskManager engine.
+Filament v5 recipes. It also includes passive TaskManager SQLite engine artifacts under:
+
+```text
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine
+```
+
+These materials do not add skills, enable strict hooks, run automatic agents, auto-run
+TaskManager, or install command wrappers.

@@ -1,11 +1,16 @@
 ---
 name: taskmanager-lite
-description: Decompose a PRD, feature, or roadmap item into dependency-ordered, verifiable tasks with acceptance criteria and regression checks. Use when planning implementation work in Codex without requiring the upstream SQLite taskmanager.
+description: Decompose a PRD, feature, or roadmap item into dependency-ordered, verifiable tasks with acceptance criteria and regression checks. Use when planning implementation work in Codex without requiring an active SQLite TaskManager runtime.
 ---
 
 # Taskmanager Lite
 
-This is a Codex-native planning workflow, not the full upstream SQLite taskmanager engine.
+This is a Codex-native planning workflow, not the full upstream SQLite TaskManager runtime.
+
+Passive upstream TaskManager SQLite engine artifacts are included under
+`references/taskmanager-engine/` for schema/query/migration/test reference and
+standalone validation. They are not Codex command wrappers, they do not auto-run
+TaskManager, and full runtime wrappers are future work.
 
 ## Task shape
 
@@ -34,10 +39,12 @@ Useful references:
 - `references/planning-question-bank.md` for architecture, stack, API, auth, database,
   frontend, and verification questions.
 - `references/prd-to-tasks-example.md` for converting PRD sections and folder docs into
-  dependency-ordered task plans without the upstream SQLite engine.
+  dependency-ordered task plans without relying on an active SQLite runtime.
 - `references/agent-taskmanager.md` for the fuller Codex-native planning persona.
 - `references/agent-verifier.md` for acceptance-criteria verification guidance without
-  the upstream SQLite engine.
+  an active SQLite runtime.
+- `references/taskmanager-engine/README.md` for the passive SQLite schema, migrations,
+  query catalog, copied tests, validation commands, and remaining runtime gaps.
 
 ## Output format
 

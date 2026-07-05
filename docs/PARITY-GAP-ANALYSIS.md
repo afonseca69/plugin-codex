@@ -23,6 +23,7 @@ It currently includes:
 - 21 first-class Codex skills
 - selected Codex-adapted references and templates under existing skill directories
 - 8 Codex-native agent/persona reference guides under existing skill directories
+- passive TaskManager SQLite engine artifacts under `taskmanager-lite/references/taskmanager-engine/`
 
 Current Codex skills:
 
@@ -61,8 +62,8 @@ Current Codex reference/template/persona coverage:
   README, STATUS, ADR, incident, roadmap, open-question templates, and doc curator persona.
 - `scribe-verify/references/`: doc verifier persona.
 - `taskmanager-lite/references/`: planning question bank, PRD-to-task example,
-  TaskManager-lite planning persona, and acceptance verifier persona without the upstream
-  SQLite engine.
+  TaskManager-lite planning persona, acceptance verifier persona, and passive TaskManager
+  SQLite engine artifacts.
 
 ## Original Claude plugins
 
@@ -114,7 +115,7 @@ The Codex port currently consolidates them into one plugin. This is acceptable f
 
 ### TaskManager
 
-The original TaskManager command set has not been ported as a real engine yet:
+The original TaskManager command set has not been ported as Codex runtime wrappers yet:
 
 - `taskmanager/commands/export.md`
 - `taskmanager/commands/init.md`
@@ -126,7 +127,9 @@ The original TaskManager command set has not been ported as a real engine yet:
 - `taskmanager/commands/update.md`
 - `taskmanager/commands/verify.md`
 
-`taskmanager-lite` is only a planning workflow, not parity with the SQLite-backed original.
+`taskmanager-lite` remains the active planning workflow. Phase 5A adds passive SQLite engine
+artifacts, but not the command runtime that would make this parity with the SQLite-backed
+original.
 
 ## Skill coverage and remaining gaps
 
@@ -172,9 +175,11 @@ Not yet ported.
 
 - `taskmanager/skills/taskmanager-memory/SKILL.md`
 
-Not yet ported.
+Not yet ported as a first-class Codex skill.
 
 `taskmanager/skills/taskmanager/SKILL.md` is only lightly represented by `taskmanager-lite`.
+The underlying SQLite schema, migrations, query catalog, and copied SQL tests are now present as
+passive artifacts under `taskmanager-lite/references/taskmanager-engine/`.
 
 ## Original agents converted to Codex references
 
@@ -222,19 +227,23 @@ Original hooks intentionally not default-enabled:
 - extended advisory reminders remain opt-in;
 - strict verification gates remain opt-in.
 
-## TaskManager engine not yet ported
+## TaskManager engine artifacts ported passively
 
-The original SQLite-backed TaskManager engine is not yet included:
+Phase 5A includes the original SQLite-backed TaskManager engine artifacts under
+`plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/`:
 
-- `taskmanager/schemas/default-config.json`
-- `taskmanager/schemas/migrate-v4.0-to-v4.1.sh`
-- `taskmanager/schemas/migrate-v4.1-to-v4.2.sh`
-- `taskmanager/schemas/queries.sql`
-- `taskmanager/schemas/schema.sql`
-- `taskmanager/tests/test_lifecycle_e2e.sh`
-- `taskmanager/tests/test_sql_queries.sh`
+- `schemas/default-config.json`
+- `schemas/migrate-v4.0-to-v4.1.sh`
+- `schemas/migrate-v4.1-to-v4.2.sh`
+- `schemas/queries.sql`
+- `schemas/schema.sql`
+- `tests/fixtures/verify-guard-sql.md`
+- `tests/test_lifecycle_e2e.sh`
+- `tests/test_sql_queries.sh`
 
-This is the largest remaining feature gap.
+This is artifact/reference parity, not runtime parity. The copied tests are adapted only to read
+the upstream verify guard SQL from a local passive test fixture because Phase 5A does not port
+`taskmanager/commands/verify.md` as a command.
 
 ## Recommended conversion phases
 
@@ -318,16 +327,40 @@ Added skill-local guides for the original agent roles:
 This phase deliberately does not claim automatic subagent execution, does not enable hooks,
 does not change `hooks/hooks.json`, and does not port the full TaskManager SQLite engine.
 
-### Phase 5 — Port TaskManager engine
+### Phase 5A — Port TaskManager engine artifacts
 
-Port SQLite schema, migrations, query catalog, tests, and command-like skills as a separate, heavily tested slice.
+Status: completed in Codex plugin `0.1.8` as passive artifacts.
+
+Added under `taskmanager-lite/references/taskmanager-engine/`:
+
+- SQLite schema `v4.2.0`;
+- default config;
+- query catalog;
+- v4.0 -> v4.1 and v4.1 -> v4.2 migrations;
+- copied SQL query and lifecycle test scripts;
+- a passive verify-guard SQL fixture used by the copied query test.
+
+Deliberate exclusions in this phase:
+
+- no hook behavior changes;
+- no changes to `hooks/hooks.json`;
+- no strict hook enablement;
+- no Codex command wrappers;
+- no automatic TaskManager execution;
+- no background jobs, external integrations, or repository migrations;
+- no full TaskManager runtime parity claim.
+
+### Phase 5B/5C — Design and test TaskManager runtime wrappers
+
+Future work should design Codex-native wrappers for the original TaskManager command set and
+prove them with runtime tests before claiming parity.
 
 ## Current verdict
 
 The repository is now a functional Codex plugin with Phase 1 skill coverage, Phase 2
-reference/template coverage, Phase 3 optional extended advisory hook coverage, and Phase 4
-agent/persona reference coverage. It is still not a full parity port of the original
-`mwguerra/plugins` suite.
+reference/template coverage, Phase 3 optional extended advisory hook coverage, Phase 4
+agent/persona reference coverage, and Phase 5A passive TaskManager SQLite engine artifacts. It is
+still not a full parity port of the original `mwguerra/plugins` suite.
 
-The next safe step is Phase 5 TaskManager engine work, if desired. Keep the full
-SQLite-backed TaskManager engine as a separate tested phase.
+The next safe TaskManager step is Codex-native runtime wrapper design and testing. Do not claim
+full SQLite-backed TaskManager runtime parity until those wrappers exist and pass live validation.
