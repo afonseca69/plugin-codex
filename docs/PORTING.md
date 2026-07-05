@@ -13,7 +13,10 @@ This repository adapts the engineering workflow ideas from `mwguerra/plugins` to
 - The remaining upstream advisory hooks are available as an optional extended advisory preset,
   not default-enabled.
 - Stricter hooks are opt-in and require live Codex smoke testing.
-- The full upstream SQLite task engine is not included in this first port; `taskmanager-lite` provides a planning workflow instead.
+- The upstream TaskManager SQLite engine artifacts are included passively under
+  `taskmanager-lite/references/taskmanager-engine/`; `taskmanager-lite` remains the active
+  Codex planning workflow.
+- TaskManager command wrappers and automatic runtime behavior are not ported yet.
 - Selected upstream references and templates now live under Codex skill-local
   `references/` and `templates/` directories, rewritten for `AGENTS.md`, Codex skills,
   `docs/`, evidence, and verification language.
@@ -22,7 +25,8 @@ This repository adapts the engineering workflow ideas from `mwguerra/plugins` to
 
 ## Future work
 
-- Port the full task engine as a separate tested slice.
+- Design Codex-native TaskManager command wrappers as a separate tested slice.
+- Add runtime tests before claiming full TaskManager parity.
 - If Codex grows a stable automatic agent mechanism, design and verify that as a separate
   phase before making any runtime claim.
 - Add live Codex smoke-test evidence for strict hooks.

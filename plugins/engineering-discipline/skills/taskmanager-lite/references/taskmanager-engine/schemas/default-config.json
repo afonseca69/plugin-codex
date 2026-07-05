@@ -1,0 +1,24 @@
+{
+  "version": "4.2.0",
+  "defaults": {
+    "priority": "medium",
+    "type": "feature",
+    "complexity_threshold_for_expansion": "M",
+    "max_subtask_depth": 3,
+    "moscow": "must"
+  },
+  "dashboard": {
+    "next_tasks_count": 5
+  },
+  "planning": {
+    "require_prd_analysis": true,
+    "ask_macro_questions": true,
+    "auto_expand_after_plan": true
+  },
+  "verification": {
+    "enforce_regression": true
+  },
+  "milestones": {
+    "execution_mode": "flexible"
+  }
+}
