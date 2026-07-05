@@ -1,16 +1,19 @@
 # TaskManager Engine Artifacts
 
-This directory is a passive Codex reference/runtime artifact port of the
-upstream TaskManager SQLite engine files from `mwguerra/plugins`.
+This directory is a Codex reference/runtime artifact port of the upstream
+TaskManager SQLite engine files from `mwguerra/plugins`.
 
-It is not a Codex TaskManager runtime. It does not register commands, enable
-hooks, start background work, create repository migrations, or auto-run tasks.
-Codex wrappers and first-class runtime integration are future work.
+It is not a full Codex TaskManager runtime. It does not register Codex commands,
+enable hooks, start background work, create repository migrations, or auto-run
+tasks. Phase 5B adds a small manual wrapper for safe local initialization,
+read-only inspection, JSON export, and copied SQL test execution.
 
 ## Contents
 
 ```text
 taskmanager-engine/
+  bin/
+    taskmanager-engine.sh
   schemas/
     default-config.json
     schema.sql
@@ -19,9 +22,11 @@ taskmanager-engine/
     migrate-v4.1-to-v4.2.sh
   tests/
     fixtures/verify-guard-sql.md
+    test_wrapper_cli.sh
     test_sql_queries.sh
     test_lifecycle_e2e.sh
   NOTES.md
+  USAGE.md
 ```
 
 The schema is upstream TaskManager SQLite schema `v4.2.0`. It includes tables
@@ -39,6 +44,30 @@ the canonical scheduling and verification views:
 
 The query catalog documents common SQLite queries for scheduling, task status,
 memory lookup, deferrals, milestones, plan analyses, verification, and archival.
+
+## Manual Wrapper
+
+`bin/taskmanager-engine.sh` is explicit and manual only:
+
+```bash
+bin/taskmanager-engine.sh help
+bin/taskmanager-engine.sh init /path/to/project
+bin/taskmanager-engine.sh status /path/to/project
+bin/taskmanager-engine.sh next /path/to/project
+bin/taskmanager-engine.sh export-json /path/to/project
+bin/taskmanager-engine.sh run-sql-tests
+```
+
+`init` creates `/path/to/project/.taskmanager/`, initializes
+`taskmanager.db` from `schemas/schema.sql`, copies `default-config.json` to
+`config.json` if missing, and creates `logs/`. It refuses to overwrite an
+existing `.taskmanager/taskmanager.db`.
+
+`status`, `next`, and `export-json` require an initialized project and do not
+mutate the database. `run-sql-tests` delegates to the copied test scripts and
+uses their disposable temp state.
+
+See `USAGE.md` for command examples and safety limits.
 
 ## Attribution
 
@@ -64,20 +93,28 @@ From the repository root:
 python3 -m json.tool plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/schemas/default-config.json >/dev/null
 bash -n plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/schemas/migrate-v4.0-to-v4.1.sh
 bash -n plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/schemas/migrate-v4.1-to-v4.2.sh
+bash -n plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh
+bash -n plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/tests/test_wrapper_cli.sh
 bash -n plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/tests/test_sql_queries.sh
 bash -n plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/tests/test_lifecycle_e2e.sh
 ```
 
-If `sqlite3` is installed, run the copied SQL suites from this directory:
+If `sqlite3` is installed, run the copied SQL suites and wrapper test from this directory:
 
 ```bash
 cd plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine
 bash tests/test_sql_queries.sh
 bash tests/test_lifecycle_e2e.sh
+bash tests/test_wrapper_cli.sh
 ```
 
-Passing these tests validates the copied SQLite artifacts as standalone files.
-Latest WSL2 artifact result: `test_sql_queries.sh` passed 285/0 and `test_lifecycle_e2e.sh` passed 30/0.
+Passing these tests validates the copied SQLite artifacts as standalone files and the limited
+manual wrapper.
+Latest WSL2 artifact result for Phase 5B: `test_sql_queries.sh` passed 285/0,
+`test_lifecycle_e2e.sh` passed 30/0, and `test_wrapper_cli.sh` passed 19/0
+while also running the copied SQL suites through `run-sql-tests`.
 
-It does not prove full Codex TaskManager runtime parity, because Phase 5A does
-not port Codex commands, wrappers, automatic agents, or hook-driven execution.
+This does not prove full Codex TaskManager runtime parity. The port still does
+not provide Codex command registration, automatic agents, hook-driven execution,
+or the full upstream command set. Phase 5B adds only the manual wrapper
+documented above.
