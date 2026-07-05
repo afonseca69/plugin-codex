@@ -30,6 +30,14 @@ PRD but keeps the same discipline around scope, decisions, integration, and veri
    data ownership, public contracts, auth, billing, or other expensive-to-change behavior.
    Otherwise move to `taskmanager-lite`.
 
+Useful references from `prd-builder-prd`:
+
+- `../prd-builder-prd/references/question-bank.md` for selective feature questions.
+- `../prd-builder-prd/references/design-review.md` for subtraction and first-principles
+  review.
+- `../prd-builder-prd/templates/prd-template.md` when the feature needs a fuller PRD
+  shape.
+
 ## Output shape
 
 ```text

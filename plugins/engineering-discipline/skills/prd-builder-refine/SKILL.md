@@ -35,6 +35,13 @@ while preserving the original decisions and voice.
 7. **Handoff.** If the refined PRD materially changes implementation work, recommend
    refreshing `architect-design` output or `taskmanager-lite` tasks.
 
+Useful references from `prd-builder-prd`:
+
+- `../prd-builder-prd/references/question-bank.md` for gap-specific questions.
+- `../prd-builder-prd/references/design-review.md` when the PRD needs a scope and
+  simplicity pass.
+- `../prd-builder-prd/templates/prd-template.md` for missing section structure.
+
 ## Gap report format
 
 ```text

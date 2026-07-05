@@ -17,6 +17,12 @@ Architecture is tradeoffs under constraints, not generic best practices.
 6. Challenge the design with `maestro-adversarial-verify` for high-risk changes.
 7. Record durable choices as ADRs.
 
+For detailed checklists, use:
+
+- `references/design-heuristics.md` for elicitation, one-way decisions, subtraction,
+  adversarial design review, and trigger quality.
+- `references/seam-catalog.md` for common cheap-now seams and extraction triggers.
+
 ## Output
 
 Use this structure:

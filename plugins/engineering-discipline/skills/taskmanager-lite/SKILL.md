@@ -29,6 +29,13 @@ Each task should have:
 - Do not mark a task done without evidence.
 - For risky tasks, require `maestro-adversarial-verify` before closure.
 
+Useful references:
+
+- `references/planning-question-bank.md` for architecture, stack, API, auth, database,
+  frontend, and verification questions.
+- `references/prd-to-tasks-example.md` for converting PRD sections and folder docs into
+  dependency-ordered task plans without the upstream SQLite engine.
+
 ## Output format
 
 ```text

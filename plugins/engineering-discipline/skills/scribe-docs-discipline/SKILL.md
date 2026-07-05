@@ -28,6 +28,16 @@ docs/
   deep-analysis/
 ```
 
+For the detailed layout contract and ready-to-fill templates, use:
+
+- `references/docs-layout.md`
+- `templates/docs-README.md`
+- `templates/STATUS.md`
+- `templates/adr.md`
+- `templates/incident.md`
+- `templates/roadmap.md`
+- `templates/open-questions.md`
+
 ## Verification
 
 When asked to verify docs:

@@ -46,6 +46,13 @@ Frame exactly why the design is changing:
    `scribe-sync`.
 7. **Verify.** Run doc checks or tests that prove the architecture still matches code.
 
+Useful references:
+
+- `../architect-design/references/design-heuristics.md` for one-way decisions,
+  subtraction, and trigger quality.
+- `../architect-design/references/seam-catalog.md` when a refinement changes or fires an
+  extraction seam.
+
 ## Guardrails
 
 - Do not erase ADR history.

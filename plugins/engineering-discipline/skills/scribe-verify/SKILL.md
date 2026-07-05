@@ -32,6 +32,9 @@ tries to refute each claim using code, config, tests, history, and other docs.
 7. **Report only.** Verification is advisory and read-only; use `scribe-sync` to curate
    fixes.
 
+Use `../scribe-docs-discipline/references/docs-layout.md` for the canonical truth types
+and stale-doc checks.
+
 ## Verdicts
 
 - `accurate`: evidence supports the claim.

@@ -42,6 +42,10 @@ docs/
 Use repository templates if they exist. If no templates exist, create lean placeholders
 that clearly say what belongs in each file and avoid false claims.
 
+When this plugin's templates are available, use the matching files from
+`../scribe-docs-discipline/templates/` and the layout rules in
+`../scribe-docs-discipline/references/docs-layout.md`.
+
 ## Brownfield baseline
 
 For existing codebases, do not write architecture or status from a quick skim. First run or

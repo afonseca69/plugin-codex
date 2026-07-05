@@ -43,6 +43,13 @@ Apply these lenses independently where possible:
    claims survived.
 5. **Report only.** Do not edit architecture docs or ADRs in this skill.
 
+Useful references:
+
+- `../architect-design/references/design-heuristics.md` for the adversarial lenses and
+  trigger-quality checks.
+- `../architect-design/references/seam-catalog.md` for cheap-now vs extract-later seam
+  expectations.
+
 ## Severity
 
 - `critical`: likely rewrite, data loss, security/auth break, or public contract failure.

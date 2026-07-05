@@ -32,6 +32,8 @@ advisory workflow: surface drift and missing docs loudly, but do not block work.
    - planned or deferred work goes to `roadmap.md`;
    - unresolved decisions go to `open-questions.md`;
    - architecture changes are recorded as ADRs and flagged for architect-owned docs.
+   Use `../scribe-docs-discipline/references/docs-layout.md` when deciding where a claim
+   belongs.
 5. **Record watermark.** When appropriate, update `docs/.scribe/last-sync` with the current
    commit SHA after curation.
 6. **Verify unless skipped.** Run `scribe-verify` and report any drift, stale items, or

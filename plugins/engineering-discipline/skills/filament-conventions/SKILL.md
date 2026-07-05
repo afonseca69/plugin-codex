@@ -12,6 +12,10 @@ when the project evidence supports them.
 
 The upstream convention this port preserves is aimed at Filament v5 projects.
 
+For Filament v5 examples, namespaces, auth/profile snippets, redirect patterns, and
+verification reminders, use `references/filament-5-recipes.md` after confirming the target
+project's installed Filament version.
+
 ## Process
 
 1. **Confirm version and layout.** Read `composer.json`, `composer.lock`, existing
