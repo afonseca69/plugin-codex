@@ -10,6 +10,7 @@ This repository is not a direct Claude Code plugin copy. It is a Codex-oriented 
 - reusable Codex skills under `skills/*/SKILL.md`;
 - selected Codex-adapted references and templates under skill-local `references/` and
   `templates/` directories;
+- passive agent/persona reference guides adapted for Codex skill workflows;
 - a small advisory hook set enabled by default;
 - optional extended advisory hooks documented but not enabled by default;
 - optional enforcing verification hooks documented but not enabled by default;
@@ -19,7 +20,7 @@ This repository is not a direct Claude Code plugin copy. It is a Codex-oriented 
 
 The upstream project was built for Claude Code and uses `.claude-plugin`, slash commands, Claude-oriented hooks, and Claude-oriented agent files. Codex now has a compatible but different extension model: plugins are packaged with `.codex-plugin/plugin.json`, skills live as `SKILL.md` folders, repo marketplaces live under `.agents/plugins/marketplace.json`, and project instructions live in `AGENTS.md`.
 
-This port keeps the useful workflow ideas — route work by risk, implement with verification, verify adversarially, keep docs current, design before irreversible changes, shape PRDs, and use Laravel conventions when relevant — while avoiding a false promise that Claude commands or Claude subagents run unchanged in Codex.
+This port keeps the useful workflow ideas — route work by risk, implement with verification, verify adversarially, keep docs current, design before irreversible changes, shape PRDs, and use Laravel conventions when relevant — while avoiding a false promise that upstream commands or agent prompts run unchanged in Codex.
 
 ## Install from Codex CLI
 
@@ -79,15 +80,17 @@ suite:
 
 | Area | Included material |
 |---|---|
-| Architecture | Design heuristics and seam catalog. |
-| Maestro | Implementation process and deep-analysis audit/publish templates. |
-| PRD Builder | Question bank, default stack profile, design-review lenses, PRD template. |
-| Scribe | Canonical docs layout plus STATUS, ADR, incident, roadmap, open-question templates. |
-| TaskManager-lite | Planning question bank and PRD-to-task example without the SQLite engine. |
+| Architecture | Design heuristics, seam catalog, architect persona, and design-adversary persona. |
+| Maestro | Implementation process, implementer persona, and deep-analysis audit/publish templates. |
+| PRD Builder | Question bank, default stack profile, design-review lenses, PRD interviewer persona, PRD template. |
+| Scribe | Canonical docs layout plus STATUS, ADR, incident, roadmap, open-question templates, doc curator persona, and doc verifier persona. |
+| TaskManager-lite | Planning question bank, PRD-to-task example, planning persona, and verifier persona without the SQLite engine. |
 | Filament | Filament v5 recipes, with version verification required in the target project. |
 
-These files are content for skills to consult. They do not add new skills, enable hooks, or
-install the upstream TaskManager engine.
+These files are content for skills to consult. They do not add new skills, enable hooks, run
+automatic agents, or install the upstream TaskManager engine. See
+[`docs/AGENT-STRATEGY.md`](docs/AGENT-STRATEGY.md) for how upstream agent prompts are represented
+as Codex reference/persona guides.
 
 ## Hooks policy
 
@@ -121,14 +124,18 @@ NOTICE.md
 
 ## Verification status
 
-Version `0.1.6` has been checked for:
+Version `0.1.7` is a reference/persona update. It has been checked for:
 
 - valid JSON manifests;
 - valid skill frontmatter presence;
 - Bash syntax for hook scripts;
-- Codex-native paths and environment names in the new files.
+- Python helper syntax;
+- no generated `__pycache__` directories;
+- Codex-native paths and agent/persona wording in the new files.
 
-It has passed local Codex CLI installation checks, advisory hook smoke tests, and optional strict hook script smoke tests on WSL2. Before relying on enforcing hooks globally, still validate them inside your target live Codex workflow and review them in `/hooks`.
+Hook behavior is unchanged from `0.1.6`: default hooks remain advisory-only, optional extended
+advisory hooks remain opt-in, and strict hooks remain opt-in. Before relying on enforcing hooks
+globally, still validate them inside your target live Codex workflow and review them in `/hooks`.
 
 ## Attribution and license
 

@@ -22,6 +22,8 @@ For detailed checklists, use:
 - `references/design-heuristics.md` for elicitation, one-way decisions, subtraction,
   adversarial design review, and trigger quality.
 - `references/seam-catalog.md` for common cheap-now seams and extraction triggers.
+- `references/agent-architect.md` for the fuller Codex-native architect persona
+  adapted from the upstream agent prompt.
 
 ## Output
 

@@ -49,6 +49,8 @@ Useful references:
   trigger-quality checks.
 - `../architect-design/references/seam-catalog.md` for cheap-now vs extract-later seam
   expectations.
+- `references/agent-design-adversary.md` for the fuller Codex-native refute-first
+  reviewer persona adapted from the upstream agent prompt.
 
 ## Severity
 

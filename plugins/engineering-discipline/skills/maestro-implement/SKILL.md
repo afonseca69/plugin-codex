@@ -6,6 +6,7 @@ description: Implement a feature, fix, refactor, or code change in Codex with di
 # Maestro Implement
 
 Follow `references/process.md` for the full process. Compress it for trivial work; expand it for risky work.
+For a focused one-task implementer stance, use `references/agent-implementer.md`.
 
 ## Operating rules
 

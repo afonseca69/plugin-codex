@@ -47,6 +47,8 @@ Useful references:
 - `references/default-stack.md` for a greenfield SaaS default profile that must be
   verified before adoption.
 - `references/design-review.md` for the silent two-lens review.
+- `references/agent-prd-interviewer.md` for the fuller Codex-native interview
+  persona adapted from the upstream agent prompt.
 - `templates/prd-template.md` for the final PRD structure.
 
 ## Recommended PRD shape

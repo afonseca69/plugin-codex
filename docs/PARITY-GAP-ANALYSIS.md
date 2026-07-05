@@ -22,6 +22,7 @@ It currently includes:
 - optional strict hooks kept out of default config
 - 21 first-class Codex skills
 - selected Codex-adapted references and templates under existing skill directories
+- 8 Codex-native agent/persona reference guides under existing skill directories
 
 Current Codex skills:
 
@@ -47,18 +48,21 @@ Current Codex skills:
 - `scribe-verify`
 - `taskmanager-lite`
 
-Current Codex reference/template coverage:
+Current Codex reference/template/persona coverage:
 
-- `architect-design/references/`: design heuristics and seam catalog.
+- `architect-design/references/`: design heuristics, seam catalog, and architect persona.
+- `architect-review/references/`: design adversary persona.
 - `filament-conventions/references/`: Filament v5 recipes with target-project version checks.
 - `maestro-deep-analysis/references/`: audit plan and `docs/deep-analysis/` output structure.
-- `maestro-implement/references/`: expanded implementation process.
+- `maestro-implement/references/`: expanded implementation process and implementer persona.
 - `prd-builder-prd/references/` and `templates/`: question bank, default stack profile,
-  design-review lenses, and PRD template.
+  design-review lenses, PRD interviewer persona, and PRD template.
 - `scribe-docs-discipline/references/` and `templates/`: canonical docs layout plus docs
-  README, STATUS, ADR, incident, roadmap, and open-question templates.
-- `taskmanager-lite/references/`: planning question bank and PRD-to-task example without the
-  upstream SQLite engine.
+  README, STATUS, ADR, incident, roadmap, open-question templates, and doc curator persona.
+- `scribe-verify/references/`: doc verifier persona.
+- `taskmanager-lite/references/`: planning question bank, PRD-to-task example,
+  TaskManager-lite planning persona, and acceptance verifier persona without the upstream
+  SQLite engine.
 
 ## Original Claude plugins
 
@@ -172,26 +176,24 @@ Not yet ported.
 
 `taskmanager/skills/taskmanager/SKILL.md` is only lightly represented by `taskmanager-lite`.
 
-## Agents not yet ported
+## Original agents converted to Codex references
 
-The original Claude agents are not yet converted to a Codex-native strategy:
+The original Claude-oriented agent files have been converted to a Codex-native
+reference/persona strategy. They are passive skill-local guides, not automatically executed
+subagents:
 
-- `architect/agents/architect.md`
-- `architect/agents/design-adversary.md`
-- `maestro/agents/implementer.md`
-- `prd-builder/agents/prd-interviewer.md`
-- `scribe/agents/doc-curator.md`
-- `scribe/agents/doc-verifier.md`
-- `taskmanager/agents/taskmanager.md`
-- `taskmanager/agents/verifier.md`
+| Original agent file | Codex reference/persona guide |
+|---|---|
+| `architect/agents/architect.md` | `architect-design/references/agent-architect.md` |
+| `architect/agents/design-adversary.md` | `architect-review/references/agent-design-adversary.md` |
+| `maestro/agents/implementer.md` | `maestro-implement/references/agent-implementer.md` |
+| `prd-builder/agents/prd-interviewer.md` | `prd-builder-prd/references/agent-prd-interviewer.md` |
+| `scribe/agents/doc-curator.md` | `scribe-docs-discipline/references/agent-doc-curator.md` |
+| `scribe/agents/doc-verifier.md` | `scribe-verify/references/agent-doc-verifier.md` |
+| `taskmanager/agents/taskmanager.md` | `taskmanager-lite/references/agent-taskmanager.md` |
+| `taskmanager/agents/verifier.md` | `taskmanager-lite/references/agent-verifier.md` |
 
-Current approach: their roles are partially embedded in skills. This is not parity.
-
-Future options:
-
-1. Convert each agent into a referenced persona document under the relevant skill.
-2. Create explicit Codex skills for each agent role.
-3. If Codex subagent support is appropriate, create a dedicated subagent strategy later.
+See `docs/AGENT-STRATEGY.md` for the strategy and explicit non-claims.
 
 ## Hooks ported or not enabled by default
 
@@ -300,7 +302,21 @@ also includes the existing default advisory reminders. The plugin entry-point
 
 ### Phase 4 — Convert agents to a Codex strategy
 
-Do not assume Claude agent files run as-is. Convert them deliberately.
+Status: completed in Codex plugin `0.1.7` as passive Codex reference/persona guides.
+
+Added skill-local guides for the original agent roles:
+
+- architect persona;
+- design adversary persona;
+- implementer persona;
+- PRD interviewer persona;
+- doc curator persona;
+- doc verifier persona;
+- TaskManager-lite planning persona;
+- acceptance verifier persona.
+
+This phase deliberately does not claim automatic subagent execution, does not enable hooks,
+does not change `hooks/hooks.json`, and does not port the full TaskManager SQLite engine.
 
 ### Phase 5 — Port TaskManager engine
 
@@ -309,8 +325,9 @@ Port SQLite schema, migrations, query catalog, tests, and command-like skills as
 ## Current verdict
 
 The repository is now a functional Codex plugin with Phase 1 skill coverage, Phase 2
-reference/template coverage, and Phase 3 optional extended advisory hook coverage. It is still
-not a full parity port of the original `mwguerra/plugins` suite.
+reference/template coverage, Phase 3 optional extended advisory hook coverage, and Phase 4
+agent/persona reference coverage. It is still not a full parity port of the original
+`mwguerra/plugins` suite.
 
-The next safe steps are Phase 4 agent strategy work and Phase 5 TaskManager engine work. Keep the
-full SQLite-backed TaskManager engine as a separate tested phase.
+The next safe step is Phase 5 TaskManager engine work, if desired. Keep the full
+SQLite-backed TaskManager engine as a separate tested phase.
