@@ -48,7 +48,8 @@ The default hook set is advisory-only. The package also includes an optional ext
 preset at `plugins/engineering-discipline/hooks/extended-advisory-hooks.json`; it is not enabled
 by default. Hooks can be left disabled or untrusted if you only want the skills and docs.
 
-The installed plugin also includes passive references and templates under relevant skill
-directories, including architecture heuristics, PRD templates, Scribe docs templates,
-TaskManager-lite planning examples, deep-analysis output structure, and Filament v5 recipes.
-They do not add skills, enable strict hooks, or install the upstream SQLite TaskManager engine.
+The installed plugin also includes passive references, templates, and agent/persona guides
+under relevant skill directories, including architecture heuristics, PRD templates, Scribe
+docs templates, TaskManager-lite planning examples, deep-analysis output structure, and
+Filament v5 recipes. They do not add skills, enable strict hooks, run automatic agents, or
+install the upstream SQLite TaskManager engine.

@@ -35,6 +35,9 @@ Useful references:
   frontend, and verification questions.
 - `references/prd-to-tasks-example.md` for converting PRD sections and folder docs into
   dependency-ordered task plans without the upstream SQLite engine.
+- `references/agent-taskmanager.md` for the fuller Codex-native planning persona.
+- `references/agent-verifier.md` for acceptance-criteria verification guidance without
+  the upstream SQLite engine.
 
 ## Output format
 

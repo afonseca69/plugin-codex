@@ -37,6 +37,8 @@ For the detailed layout contract and ready-to-fill templates, use:
 - `templates/incident.md`
 - `templates/roadmap.md`
 - `templates/open-questions.md`
+- `references/agent-doc-curator.md` for the fuller Codex-native curation persona
+  adapted from the upstream agent prompt.
 
 ## Verification
 

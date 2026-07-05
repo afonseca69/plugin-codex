@@ -34,6 +34,8 @@ tries to refute each claim using code, config, tests, history, and other docs.
 
 Use `../scribe-docs-discipline/references/docs-layout.md` for the canonical truth types
 and stale-doc checks.
+Use `references/agent-doc-verifier.md` for the fuller Codex-native read-only verifier
+persona adapted from the upstream agent prompt.
 
 ## Verdicts
 
