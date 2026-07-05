@@ -329,7 +329,7 @@ does not change `hooks/hooks.json`, and does not port the full TaskManager SQLit
 
 ### Phase 5A — Port TaskManager engine artifacts
 
-Status: completed in Codex plugin `0.1.8` as passive artifacts.
+Status: completed in Codex plugin `0.1.8` as passive artifacts. After installing `sqlite3` on WSL2, the copied artifact tests passed: `test_sql_queries.sh` 285/0 and `test_lifecycle_e2e.sh` 30/0.
 
 Added under `taskmanager-lite/references/taskmanager-engine/`:
 
