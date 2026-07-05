@@ -41,6 +41,11 @@ Expected skills:
 - `architect-refine`
 - `architect-review`
 - `taskmanager-lite`
+- `taskmanager-engine-init`
+- `taskmanager-engine-status`
+- `taskmanager-engine-next`
+- `taskmanager-engine-export`
+- `taskmanager-engine-test`
 - `laravel-conventions`
 - `filament-conventions`
 
@@ -59,6 +64,7 @@ plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-en
 ```
 
 The wrapper is `bin/taskmanager-engine.sh` inside that directory. It is manual only and supports
-safe `init`, `status`, `next`, `export-json`, and `run-sql-tests` commands. These materials do
-not add skills, enable strict hooks, run automatic agents, auto-run TaskManager, or register
+safe `init`, `status`, `next`, `export-json`, and `run-sql-tests` commands. The
+`taskmanager-engine-*` skills are first-class Codex guides for those manual operations. These
+materials do not enable strict hooks, run automatic agents, auto-run TaskManager, or register
 Codex commands.

@@ -20,7 +20,7 @@ It currently includes:
 - advisory hooks enabled by default
 - optional extended advisory hooks kept out of default config
 - optional strict hooks kept out of default config
-- 21 first-class Codex skills
+- 26 first-class Codex skills
 - selected Codex-adapted references and templates under existing skill directories
 - 8 Codex-native agent/persona reference guides under existing skill directories
 - TaskManager SQLite engine artifacts and a manual opt-in wrapper under
@@ -48,6 +48,11 @@ Current Codex skills:
 - `scribe-init`
 - `scribe-sync`
 - `scribe-verify`
+- `taskmanager-engine-export`
+- `taskmanager-engine-init`
+- `taskmanager-engine-next`
+- `taskmanager-engine-status`
+- `taskmanager-engine-test`
 - `taskmanager-lite`
 
 Current Codex reference/template/persona coverage:
@@ -65,6 +70,8 @@ Current Codex reference/template/persona coverage:
 - `taskmanager-lite/references/`: planning question bank, PRD-to-task example,
   TaskManager-lite planning persona, acceptance verifier persona, TaskManager SQLite engine
   artifacts, and a manual engine wrapper.
+- `taskmanager-engine-*`: first-class Codex skills for explicit manual wrapper operation
+  (`init`, `status`, `next`, `export-json`, and copied engine tests).
 
 ## Original Claude plugins
 
@@ -112,12 +119,11 @@ The Codex port currently consolidates them into one plugin. This is acceptable f
 
 `scribe-docs-discipline` remains the general docs discipline skill.
 
-## Commands not yet ported as first-class Codex skills
+## Commands not yet ported as full Codex runtime wrappers
 
 ### TaskManager
 
-The original TaskManager command set has not been ported as first-class Codex runtime wrappers
-yet:
+The original TaskManager command set has not been ported as full Codex runtime wrappers yet:
 
 - `taskmanager/commands/export.md`
 - `taskmanager/commands/init.md`
@@ -129,10 +135,18 @@ yet:
 - `taskmanager/commands/update.md`
 - `taskmanager/commands/verify.md`
 
-`taskmanager-lite` remains the active planning workflow. Phase 5A adds SQLite engine artifacts
-and Phase 5B adds a small manual shell wrapper for `init`, `status`, `next`, `export-json`, and
-`run-sql-tests`. That wrapper is not registered as a Codex command and does not make this parity
-with the SQLite-backed original.
+`taskmanager-lite` remains the active planning workflow. Phase 5A adds SQLite engine artifacts,
+Phase 5B adds a small manual shell wrapper for `init`, `status`, `next`, `export-json`, and
+`run-sql-tests`, and Phase 5C adds first-class Codex skills that operate that wrapper explicitly:
+
+- `taskmanager-engine-init`
+- `taskmanager-engine-status`
+- `taskmanager-engine-next`
+- `taskmanager-engine-export`
+- `taskmanager-engine-test`
+
+Those skills are operator guides around the manual wrapper. They are not hidden runtime services,
+are not registered Codex commands, and do not make this parity with the SQLite-backed original.
 
 ## Skill coverage and remaining gaps
 
@@ -182,7 +196,8 @@ Not yet ported as a first-class Codex skill.
 
 `taskmanager/skills/taskmanager/SKILL.md` is only lightly represented by `taskmanager-lite`.
 The underlying SQLite schema, migrations, query catalog, copied SQL tests, and a small manual
-wrapper are now present under `taskmanager-lite/references/taskmanager-engine/`.
+wrapper are now present under `taskmanager-lite/references/taskmanager-engine/`, with
+first-class Codex skills for the supported manual wrapper operations.
 
 ## Original agents converted to Codex references
 
@@ -230,10 +245,10 @@ Original hooks intentionally not default-enabled:
 - extended advisory reminders remain opt-in;
 - strict verification gates remain opt-in.
 
-## TaskManager engine artifacts and manual wrapper
+## TaskManager engine artifacts, manual wrapper, and wrapper skills
 
-Phase 5A and Phase 5B include the SQLite-backed TaskManager engine artifacts and manual wrapper
-under
+Phase 5A, Phase 5B, and Phase 5C include the SQLite-backed TaskManager engine artifacts, manual
+wrapper, and manual wrapper operation skills under
 `plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/`:
 
 - `schemas/default-config.json`
@@ -248,11 +263,20 @@ under
 - `tests/test_sql_queries.sh`
 - `USAGE.md`
 
-This is artifact/reference parity plus a limited manual wrapper, not full runtime parity. The
-copied tests are adapted only to read the upstream verify guard SQL from a local passive test
-fixture because Phase 5A does not port `taskmanager/commands/verify.md` as a command. The Phase
-5B wrapper initializes and inspects the copied SQLite engine but does not implement the original
-TaskManager command set.
+Phase 5C also adds these skill entry points under `plugins/engineering-discipline/skills/`:
+
+- `taskmanager-engine-init`
+- `taskmanager-engine-status`
+- `taskmanager-engine-next`
+- `taskmanager-engine-export`
+- `taskmanager-engine-test`
+
+This is artifact/reference parity plus a limited manual wrapper and skill-level operator guides,
+not full runtime parity. The copied tests are adapted only to read the upstream verify guard SQL
+from a local passive test fixture because Phase 5A does not port
+`taskmanager/commands/verify.md` as a command. The Phase 5B wrapper initializes and inspects the
+copied SQLite engine, and Phase 5C documents that wrapper as first-class skills, but neither
+phase implements the original TaskManager command set.
 
 ## Recommended conversion phases
 
@@ -390,19 +414,38 @@ Deliberate exclusions in this phase:
   command parity;
 - no full TaskManager runtime parity claim.
 
-### Phase 5C — Consider broader TaskManager runtime parity
+### Phase 5C — Add first-class manual wrapper operation skills
 
-Future work can design first-class Codex-native wrappers for the original TaskManager command
-set and prove them with runtime tests before claiming broader parity.
+Status: completed in Codex plugin `0.1.10` as first-class Codex skills for explicit manual
+wrapper operations.
+
+Added under `plugins/engineering-discipline/skills/`:
+
+- `taskmanager-engine-init`
+- `taskmanager-engine-status`
+- `taskmanager-engine-next`
+- `taskmanager-engine-export`
+- `taskmanager-engine-test`
+
+These skills describe safe use of
+`plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh`.
+They cover initializing `PROJECT_DIR/.taskmanager`, read-only status/next/export inspection, and
+copied engine test execution. They do not enable hooks, add background jobs, register Codex
+commands, auto-run TaskManager, or claim full upstream TaskManager parity.
+
+### Phase 5D — Consider broader TaskManager runtime parity
+
+Future work can design Codex-native runtime wrappers for the original TaskManager command set and
+prove them with runtime tests before claiming broader parity.
 
 ## Current verdict
 
 The repository is now a functional Codex plugin with Phase 1 skill coverage, Phase 2
 reference/template coverage, Phase 3 optional extended advisory hook coverage, Phase 4
-agent/persona reference coverage, Phase 5A TaskManager SQLite engine artifacts, and Phase 5B
-manual TaskManager engine wrappers. It is still not a full parity port of the original
-`mwguerra/plugins` suite.
+agent/persona reference coverage, Phase 5A TaskManager SQLite engine artifacts, Phase 5B manual
+TaskManager engine wrappers, and Phase 5C first-class manual wrapper operation skills. It is
+still not a full parity port of the original `mwguerra/plugins` suite.
 
 The next safe TaskManager step is broader Codex-native command/runtime design and testing. Do not
-claim full SQLite-backed TaskManager runtime parity until the original command behavior exists
-and passes live validation.
+claim full SQLite-backed TaskManager runtime parity until the original command behavior exists and
+passes live validation.

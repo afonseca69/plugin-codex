@@ -29,6 +29,16 @@ find plugins/engineering-discipline/skills -name SKILL.md -print | sort
 find . -type d -name __pycache__ -print
 ```
 
+For Phase 5C, confirm the sorted skill list includes:
+
+```text
+plugins/engineering-discipline/skills/taskmanager-engine-export/SKILL.md
+plugins/engineering-discipline/skills/taskmanager-engine-init/SKILL.md
+plugins/engineering-discipline/skills/taskmanager-engine-next/SKILL.md
+plugins/engineering-discipline/skills/taskmanager-engine-status/SKILL.md
+plugins/engineering-discipline/skills/taskmanager-engine-test/SKILL.md
+```
+
 ## TaskManager engine artifacts
 
 The TaskManager SQLite engine artifacts are passive files under:
@@ -64,12 +74,13 @@ test -f "$TMP/.taskmanager/taskmanager.db"
 rm -rf "$TMP"
 ```
 
-Latest WSL2 result for plugin `0.1.9`: `test_sql_queries.sh` passed 285/0,
+Latest local result for plugin `0.1.10`: `test_sql_queries.sh` passed 285/0,
 `test_lifecycle_e2e.sh` passed 30/0, and `test_wrapper_cli.sh` passed 19/0.
 
 Passing these suites validates the standalone copied SQLite artifacts and the limited manual
-wrapper only. Full TaskManager runtime parity still requires a broader Codex command/runtime
-design and tests.
+wrapper only. Phase 5C adds first-class Codex skill entry points for the manual wrapper; it does
+not claim full TaskManager runtime parity. Full parity still requires a broader Codex
+command/runtime design and tests.
 
 ## Extended advisory hooks
 
@@ -102,7 +113,7 @@ Do not claim strict hooks are production-ready until these checks pass in the ta
 
 ## Live hook smoke-test status
 
-Last live hook smoke test was verified on WSL2 with Codex CLI `0.142.5` using installed plugin cache `0.1.3`. The 0.1.4 skill-only update, 0.1.5 reference/template update, 0.1.7 agent/persona reference update, 0.1.8 passive TaskManager engine artifact update, and 0.1.9 manual TaskManager wrapper update did not change default hook behavior. Version 0.1.6 adds optional extended advisory hooks, but does not change `hooks/hooks.json`:
+Last live hook smoke test was verified on WSL2 with Codex CLI `0.142.5` using installed plugin cache `0.1.3`. The 0.1.4 skill-only update, 0.1.5 reference/template update, 0.1.7 agent/persona reference update, 0.1.8 passive TaskManager engine artifact update, 0.1.9 manual TaskManager wrapper update, and 0.1.10 manual wrapper skill update did not change default hook behavior. Version 0.1.6 adds optional extended advisory hooks, but does not change `hooks/hooks.json`:
 
 - marketplace added from local repository;
 - `engineering-discipline@plugin-codex` installed and enabled;
