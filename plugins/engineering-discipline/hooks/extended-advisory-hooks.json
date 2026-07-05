@@ -1,0 +1,96 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${PLUGIN_ROOT}/hooks/read_docs_first.sh\"",
+            "statusMessage": "Checking docs-first guidance"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${PLUGIN_ROOT}/hooks/self_challenge_gate.sh\"",
+            "statusMessage": "Checking deep-task self-challenge reminder"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${PLUGIN_ROOT}/hooks/asset_inventory_gate.sh\"",
+            "statusMessage": "Checking asset inventory reminder"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${PLUGIN_ROOT}/hooks/ls_real_preflight.sh\"",
+            "statusMessage": "Checking look-before-describe reminder"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${PLUGIN_ROOT}/hooks/session_retro.sh\"",
+            "statusMessage": "Checking session retrospective reminder"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${PLUGIN_ROOT}/hooks/verify_before_commit.sh\"",
+            "statusMessage": "Checking commit verification reminder"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${PLUGIN_ROOT}/hooks/docs_update_gate.sh\"",
+            "statusMessage": "Checking docs update reminder"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${PLUGIN_ROOT}/hooks/restart_reminder.sh\"",
+            "statusMessage": "Checking runtime restart reminder"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${PLUGIN_ROOT}/hooks/curate_on_stop.sh\"",
+            "statusMessage": "Checking docs curation reminder"
+          }
+        ]
+      }
+    ]
+  }
+}

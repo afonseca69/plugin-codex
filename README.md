@@ -10,7 +10,8 @@ This repository is not a direct Claude Code plugin copy. It is a Codex-oriented 
 - reusable Codex skills under `skills/*/SKILL.md`;
 - selected Codex-adapted references and templates under skill-local `references/` and
   `templates/` directories;
-- advisory hooks enabled by default;
+- a small advisory hook set enabled by default;
+- optional extended advisory hooks documented but not enabled by default;
 - optional enforcing verification hooks documented but not enabled by default;
 - `AGENTS.md` guidance for working on this repository.
 
@@ -96,6 +97,11 @@ The default bundled hooks are **advisory-only**:
 - warn before `git commit` if verification was not recorded;
 - remind after commits to restart/recheck runtime behavior when appropriate.
 
+An optional extended advisory preset ports the remaining upstream reminder hooks for asset
+inventory, look-before-describe, self-challenge, session retro, docs update, and docs curation.
+It is packaged as `plugins/engineering-discipline/hooks/extended-advisory-hooks.json` and is not
+the plugin entry-point hook config.
+
 The upstream Claude plugin had hard verification gates. This repository includes Codex-adapted enforcing hooks, but keeps them out of the default hook file until you explicitly opt in and test them in your environment. See [`docs/VERIFY.md`](docs/VERIFY.md) and [`plugins/engineering-discipline/hooks/README.md`](plugins/engineering-discipline/hooks/README.md).
 
 ## Repository layout
@@ -115,7 +121,7 @@ NOTICE.md
 
 ## Verification status
 
-This port has been checked for:
+Version `0.1.6` has been checked for:
 
 - valid JSON manifests;
 - valid skill frontmatter presence;
