@@ -9,12 +9,32 @@ python3 -m json.tool .agents/plugins/marketplace.json >/dev/null
 python3 -m json.tool plugins/engineering-discipline/.codex-plugin/plugin.json >/dev/null
 python3 -m json.tool plugins/engineering-discipline/hooks/hooks.json >/dev/null
 python3 -m json.tool plugins/engineering-discipline/hooks/enforcing-hooks.json >/dev/null
+python3 -m json.tool plugins/engineering-discipline/hooks/extended-advisory-hooks.json >/dev/null
 bash -n plugins/engineering-discipline/hooks/*.sh
-PYTHONDONTWRITEBYTECODE=1 python3 -m py_compile plugins/engineering-discipline/hooks/lib/json_value.py
+python3 - <<'PY'
+import ast
+from pathlib import Path
+ast.parse(Path("plugins/engineering-discipline/hooks/lib/json_value.py").read_text())
+print("python syntax OK")
+PY
 git diff --check
 find plugins/engineering-discipline/skills -name SKILL.md -print | sort
 find . -type d -name __pycache__ -print
 ```
+
+## Extended advisory hooks
+
+`plugins/engineering-discipline/hooks/extended-advisory-hooks.json` is an optional preset. It
+includes the default advisory reminders plus the Phase 3 advisory ports:
+
+- `asset_inventory_gate.sh`
+- `ls_real_preflight.sh`
+- `self_challenge_gate.sh`
+- `session_retro.sh`
+- `docs_update_gate.sh`
+- `curate_on_stop.sh`
+
+They only return `additionalContext` and are safe to leave disabled.
 
 ## Strict hooks
 
@@ -33,7 +53,7 @@ Do not claim strict hooks are production-ready until these checks pass in the ta
 
 ## Live hook smoke-test status
 
-Last live hook smoke test was verified on WSL2 with Codex CLI `0.142.5` using installed plugin cache `0.1.3`. The 0.1.4 skill-only update and 0.1.5 reference/template update did not change hook behavior:
+Last live hook smoke test was verified on WSL2 with Codex CLI `0.142.5` using installed plugin cache `0.1.3`. The 0.1.4 skill-only update and 0.1.5 reference/template update did not change hook behavior. Version 0.1.6 adds optional extended advisory hooks, but does not change `hooks/hooks.json`:
 
 - marketplace added from local repository;
 - `engineering-discipline@plugin-codex` installed and enabled;

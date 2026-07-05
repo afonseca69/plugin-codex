@@ -18,6 +18,7 @@ It currently includes:
 - `.agents/plugins/marketplace.json`
 - `plugins/engineering-discipline/.codex-plugin/plugin.json`
 - advisory hooks enabled by default
+- optional extended advisory hooks kept out of default config
 - optional strict hooks kept out of default config
 - 21 first-class Codex skills
 - selected Codex-adapted references and templates under existing skill directories
@@ -192,7 +193,7 @@ Future options:
 2. Create explicit Codex skills for each agent role.
 3. If Codex subagent support is appropriate, create a dedicated subagent strategy later.
 
-## Hooks not yet ported or not enabled by default
+## Hooks ported or not enabled by default
 
 Current default Codex hooks:
 
@@ -200,22 +201,23 @@ Current default Codex hooks:
 - `verify_before_commit.sh`
 - `restart_reminder.sh`
 
+Current optional extended advisory hooks:
+
+- `asset_inventory_gate.sh`
+- `ls_real_preflight.sh`
+- `self_challenge_gate.sh`
+- `session_retro.sh`
+- `docs_update_gate.sh`
+- `curate_on_stop.sh`
+
 Current optional strict hooks:
 
 - `verify_commit_gate.sh`
 - `verify_stop_gate.sh`
 
-Original hooks not yet ported:
-
-- `maestro/hooks/asset_inventory_gate.sh`
-- `maestro/hooks/ls_real_preflight.sh`
-- `maestro/hooks/self_challenge_gate.sh`
-- `maestro/hooks/session_retro.sh`
-- `scribe/hooks/curate_on_stop.sh`
-- `scribe/hooks/docs_update_gate.sh`
-
 Original hooks intentionally not default-enabled:
 
+- extended advisory reminders remain opt-in;
 - strict verification gates remain opt-in.
 
 ## TaskManager engine not yet ported
@@ -281,7 +283,9 @@ Deliberate exclusions in this phase:
 
 ### Phase 3 — Port advisory hooks
 
-Add Codex-native advisory versions of:
+Status: completed in Codex plugin `0.1.6` as optional extended advisory hooks.
+
+Added Codex-native advisory versions of:
 
 - asset inventory
 - look-before-describe
@@ -290,7 +294,9 @@ Add Codex-native advisory versions of:
 - docs update reminder
 - doc curation reminder
 
-Keep them reviewable and advisory.
+They are packaged in `plugins/engineering-discipline/hooks/extended-advisory-hooks.json`, which
+also includes the existing default advisory reminders. The plugin entry-point
+`hooks/hooks.json` was not changed, so Phase 3 is not default-enabled.
 
 ### Phase 4 — Convert agents to a Codex strategy
 
@@ -302,10 +308,9 @@ Port SQLite schema, migrations, query catalog, tests, and command-like skills as
 
 ## Current verdict
 
-The repository is now a functional Codex plugin with Phase 1 skill coverage and Phase 2
-reference/template coverage, but not yet a full parity port of the original `mwguerra/plugins`
-suite.
+The repository is now a functional Codex plugin with Phase 1 skill coverage, Phase 2
+reference/template coverage, and Phase 3 optional extended advisory hook coverage. It is still
+not a full parity port of the original `mwguerra/plugins` suite.
 
-The next safe step is Phase 3: add Codex-native advisory versions of selected original hooks as
-a separate reviewable change, while keeping defaults advisory-only and leaving the TaskManager
-engine for a separate tested phase.
+The next safe steps are Phase 4 agent strategy work and Phase 5 TaskManager engine work. Keep the
+full SQLite-backed TaskManager engine as a separate tested phase.

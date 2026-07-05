@@ -44,7 +44,9 @@ Expected skills:
 - `laravel-conventions`
 - `filament-conventions`
 
-The default hook set is advisory-only.
+The default hook set is advisory-only. The package also includes an optional extended advisory
+preset at `plugins/engineering-discipline/hooks/extended-advisory-hooks.json`; it is not enabled
+by default. Hooks can be left disabled or untrusted if you only want the skills and docs.
 
 The installed plugin also includes passive references and templates under relevant skill
 directories, including architecture heuristics, PRD templates, Scribe docs templates,
