@@ -77,5 +77,7 @@ bash tests/test_lifecycle_e2e.sh
 ```
 
 Passing these tests validates the copied SQLite artifacts as standalone files.
+Latest WSL2 artifact result: `test_sql_queries.sh` passed 285/0 and `test_lifecycle_e2e.sh` passed 30/0.
+
 It does not prove full Codex TaskManager runtime parity, because Phase 5A does
 not port Codex commands, wrappers, automatic agents, or hook-driven execution.

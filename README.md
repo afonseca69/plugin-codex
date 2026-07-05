@@ -140,7 +140,7 @@ Version `0.1.8` adds passive TaskManager SQLite engine artifacts. It has been ch
 - JSON validity for the copied TaskManager default config;
 - Python helper syntax;
 - no generated `__pycache__` directories;
-- standalone copied TaskManager SQL tests when `sqlite3` is available.
+- standalone copied TaskManager SQL tests passed on WSL2 with `sqlite3`: `test_sql_queries.sh` 285/0 and `test_lifecycle_e2e.sh` 30/0.
 
 Hook behavior is unchanged from `0.1.7`: default hooks remain advisory-only, optional extended
 advisory hooks remain opt-in, and strict hooks remain opt-in. TaskManager commands/wrappers are

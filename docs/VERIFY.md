@@ -46,6 +46,8 @@ bash tests/test_sql_queries.sh
 bash tests/test_lifecycle_e2e.sh
 ```
 
+Latest WSL2 result for installed plugin cache `0.1.8`: `test_sql_queries.sh` passed 285/0 and `test_lifecycle_e2e.sh` passed 30/0.
+
 Passing these suites validates the standalone copied SQLite artifacts only. Full TaskManager
 runtime parity still requires future Codex wrappers and runtime tests.
 
