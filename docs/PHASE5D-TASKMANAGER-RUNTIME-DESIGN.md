@@ -11,6 +11,13 @@ TaskManager SQLite artifacts, a small manual wrapper, and first-class skills for
 the wrapper operations that already exist. Full upstream TaskManager runtime
 parity is not claimed.
 
+Post-design update: Phase 5E in plugin version `0.1.11` implements the first
+read-only visibility slice from this design through
+`taskmanager-engine.sh show PROJECT_DIR [view] [args...]` and the
+`taskmanager-engine-show` skill. It remains limited to read-only overview, task,
+milestone, memory, deferral, verification, and regression views and does not
+claim full upstream `show` or TaskManager runtime parity.
+
 ## Context
 
 The upstream TaskManager plugin in `../mwguerra-plugins/taskmanager` provides a
@@ -116,7 +123,7 @@ The upstream TaskManager command set is:
 | `plan` | Parse PRD file, folder, or prompt; analyze risks; create plan analyses, memories, milestones, tasks, dependencies, and optional expansions. | Writes many DB tables and logs. | Not implemented. `taskmanager-lite` is database-free planning guidance only. |
 | `run` | Select or execute tasks, apply memories and deferrals, update statuses, perform work, verify before done, and propagate status. | Mutates DB and may mutate repository files when performing task work. | Not implemented. |
 | `verify` | Verify tasks, milestones, or PRD criteria with captured evidence and adversarial review; record verification rows. | Mutates verification rows and task status. | Not implemented. |
-| `show` | Read dashboard, task details, next tasks, stats, deferrals, milestones, verification, and plan analyses. | Read-only. | Partially covered by `status` and `next`; full `show` is not implemented. |
+| `show` | Read dashboard, task details, next tasks, stats, deferrals, milestones, verification, and plan analyses. | Read-only. | Phase 5E implements a limited read-only subset: overview, task list/detail, milestones, memories, deferrals, verifications, and regressions. Full upstream `show` is not implemented. |
 | `update` | Modify task fields, status, tags, dependencies, milestones, deferrals, and scope. | Mutates DB. | Not implemented. |
 | `export` | Export JSON for tasks, memories, verifications, all data, or markdown task files. | Read-only for stdout JSON; writes when output file or task files requested. | Partially supported by `export-json` for core JSON to stdout. |
 | `research` | Combine codebase analysis and web research, then store findings as memories. | Reads repo and network; mutates memories/state/logs. | Not implemented. |

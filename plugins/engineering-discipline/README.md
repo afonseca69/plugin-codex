@@ -10,7 +10,7 @@ Installable Codex plugin exposed by the root marketplace.
 - Passive TaskManager SQLite engine artifacts under
   `skills/taskmanager-lite/references/taskmanager-engine/`.
 - First-class `taskmanager-engine-*` skills that operate the manual wrapper
-  explicitly.
+  explicitly, including read-only runtime visibility.
 - Advisory lifecycle hooks in `hooks/hooks.json`.
 - Optional strict hook examples in `hooks/enforcing-hooks.json`.
 - Ledger helper in `hooks/lib/ledger.sh` for recording verification evidence.

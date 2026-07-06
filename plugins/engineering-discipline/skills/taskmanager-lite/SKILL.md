@@ -12,8 +12,8 @@ Upstream TaskManager SQLite engine artifacts are included under
 `references/taskmanager-engine/` for schema/query/migration/test reference,
 standalone validation, and an explicit manual wrapper. The wrapper lives at
 `references/taskmanager-engine/bin/taskmanager-engine.sh` and supports only safe
-manual commands: `init`, `status`, `next`, `export-json`, `run-sql-tests`, and
-`help`.
+manual commands: `init`, `status`, `next`, `show`, `export-json`,
+`run-sql-tests`, and `help`.
 
 The wrapper is not registered as a Codex command, does not enable hooks, does
 not auto-run TaskManager, and does not implement the full upstream command set.
@@ -25,6 +25,7 @@ For explicit manual wrapper operations, use these first-class Codex skills:
 - `taskmanager-engine-init`
 - `taskmanager-engine-status`
 - `taskmanager-engine-next`
+- `taskmanager-engine-show`
 - `taskmanager-engine-export`
 - `taskmanager-engine-test`
 

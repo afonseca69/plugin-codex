@@ -36,8 +36,9 @@ execution or direct compatibility with the original agent runtime.
 - No new hook behavior.
 - No changes to `hooks/hooks.json`.
 - No strict hook enablement.
-- No TaskManager SQLite schema, migrations, database, commands, dashboard, or
-  memory engine.
+- No automatic TaskManager agent runtime.
+- No mutating TaskManager runtime commands.
+- No full upstream TaskManager dashboard, memory engine, or command parity.
 - No external integrations, background jobs, or unrelated tooling.
 
 ## Usage
