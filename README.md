@@ -140,6 +140,9 @@ NOTICE.md
 
 ## Verification status
 
+See [`docs/RELEASE-READINESS-0.1.10.md`](docs/RELEASE-READINESS-0.1.10.md) for the `0.1.10`
+release readiness and parity status checkpoint.
+
 Version `0.1.10` adds first-class Codex skills for operating the safe, opt-in TaskManager
 engine wrapper scripts around the copied SQLite artifacts. It has been checked for:
 

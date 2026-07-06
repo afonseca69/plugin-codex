@@ -1,5 +1,8 @@
 # Verification
 
+For the `0.1.10` release readiness and parity status checkpoint, see
+[`docs/RELEASE-READINESS-0.1.10.md`](RELEASE-READINESS-0.1.10.md).
+
 ## Static checks
 
 Run from repository root:
