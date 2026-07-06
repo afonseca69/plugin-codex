@@ -6,6 +6,18 @@ TaskManager SQLite artifacts in this directory.
 It is not registered as a Codex command, does not run automatically, does not
 enable hooks, and does not start background work.
 
+The plugin also includes first-class Codex skills for these manual wrapper
+operations:
+
+- `taskmanager-engine-init`
+- `taskmanager-engine-status`
+- `taskmanager-engine-next`
+- `taskmanager-engine-export`
+- `taskmanager-engine-test`
+
+Those skills are operator guides for this wrapper. They do not add hidden
+runtime behavior or full upstream TaskManager command parity.
+
 ## Requirements
 
 - `sqlite3` on `PATH`.

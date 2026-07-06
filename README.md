@@ -12,7 +12,8 @@ This repository is not a direct Claude Code plugin copy. It is a Codex-oriented 
   `templates/` directories;
 - passive agent/persona reference guides adapted for Codex skill workflows;
 - TaskManager SQLite engine artifacts under `taskmanager-lite` for schema,
-  migration, query, copied-test reference, and a small manual wrapper;
+  migration, query, copied-test reference, a small manual wrapper, and
+  first-class manual wrapper operation skills;
 - a small advisory hook set enabled by default;
 - optional extended advisory hooks documented but not enabled by default;
 - optional enforcing verification hooks documented but not enabled by default;
@@ -70,6 +71,11 @@ The marketplace points to `./plugins/engineering-discipline`.
 | `architect-refine` | Evolve existing architecture while preserving ADR history. |
 | `architect-review` | Adversarially review architecture and ADRs with read-only findings. |
 | `taskmanager-lite` | Decompose PRDs/features into verifiable tasks without requiring an active SQLite TaskManager runtime. |
+| `taskmanager-engine-init` | Initialize `PROJECT_DIR/.taskmanager` through the explicit manual TaskManager engine wrapper. |
+| `taskmanager-engine-status` | Read status from `PROJECT_DIR/.taskmanager/taskmanager.db` through the manual wrapper. |
+| `taskmanager-engine-next` | Show next available tasks through the read-only manual wrapper. |
+| `taskmanager-engine-export` | Export JSON-style core TaskManager data through the read-only manual wrapper. |
+| `taskmanager-engine-test` | Run copied TaskManager SQL, lifecycle, and wrapper tests. |
 | `laravel-conventions` | Apply Laravel/Filament/Pest conventions safely when the target project is Laravel. |
 | `filament-conventions` | Apply Filament-specific panel, resource, auth, and verification conventions. |
 
@@ -86,10 +92,10 @@ suite:
 | Maestro | Implementation process, implementer persona, and deep-analysis audit/publish templates. |
 | PRD Builder | Question bank, default stack profile, design-review lenses, PRD interviewer persona, PRD template. |
 | Scribe | Canonical docs layout plus STATUS, ADR, incident, roadmap, open-question templates, doc curator persona, and doc verifier persona. |
-| TaskManager-lite | Planning question bank, PRD-to-task example, planning persona, verifier persona, TaskManager SQLite engine artifacts, and a manual engine wrapper. |
+| TaskManager-lite | Planning question bank, PRD-to-task example, planning persona, verifier persona, TaskManager SQLite engine artifacts, manual engine wrapper, and manual wrapper skill entry points. |
 | Filament | Filament v5 recipes, with version verification required in the target project. |
 
-These files are content for skills to consult. They do not add new skills, enable hooks, run
+These files are content for skills to consult. They do not enable hooks, run
 automatic agents, or auto-run TaskManager. See
 [`docs/AGENT-STRATEGY.md`](docs/AGENT-STRATEGY.md) for how upstream agent prompts are represented
 as Codex reference/persona guides.
@@ -99,7 +105,8 @@ The TaskManager engine artifacts live at
 include upstream schema/config, migrations, query catalog, copied SQL test assets, and a manual
 wrapper at `bin/taskmanager-engine.sh`. The wrapper supports explicit `init`, `status`, `next`,
 `export-json`, and `run-sql-tests` commands, but it is not registered as a Codex command and is
-not a full TaskManager runtime.
+not a full TaskManager runtime. The `taskmanager-engine-*` skills are first-class Codex operator
+guides for that wrapper; they do not add hidden runtime behavior or full upstream command parity.
 
 ## Hooks policy
 
@@ -133,8 +140,8 @@ NOTICE.md
 
 ## Verification status
 
-Version `0.1.9` adds safe, opt-in TaskManager engine wrapper scripts around the copied SQLite
-artifacts. It has been checked for:
+Version `0.1.10` adds first-class Codex skills for operating the safe, opt-in TaskManager
+engine wrapper scripts around the copied SQLite artifacts. It has been checked for:
 
 - valid JSON manifests;
 - valid skill frontmatter presence;
@@ -144,15 +151,15 @@ artifacts. It has been checked for:
 - JSON validity for the copied TaskManager default config;
 - Python helper syntax;
 - no generated `__pycache__` directories;
-- standalone copied TaskManager SQL tests passed on WSL2 with `sqlite3`: `test_sql_queries.sh` 285/0 and `test_lifecycle_e2e.sh` 30/0.
-- wrapper smoke/regression tests passed on WSL2 with `sqlite3`: `test_wrapper_cli.sh` 19/0,
+- standalone copied TaskManager SQL tests passed locally with `sqlite3`: `test_sql_queries.sh` 285/0 and `test_lifecycle_e2e.sh` 30/0.
+- wrapper smoke/regression tests passed locally with `sqlite3`: `test_wrapper_cli.sh` 19/0,
   including `init`, `status`, `next`, `export-json`, and wrapper-driven `run-sql-tests`.
 
-Hook behavior is unchanged from `0.1.8`: default hooks remain advisory-only, optional extended
+Hook behavior is unchanged from `0.1.9`: default hooks remain advisory-only, optional extended
 advisory hooks remain opt-in, and strict hooks remain opt-in. The TaskManager wrapper is manual
-only and does not claim full upstream TaskManager runtime parity. Before relying on enforcing
-hooks globally, still validate them inside your target live Codex workflow and review them in
-`/hooks`.
+only. The new `taskmanager-engine-*` skills describe manual wrapper usage and do not claim full
+upstream TaskManager runtime parity. Before relying on enforcing hooks globally, still validate
+them inside your target live Codex workflow and review them in `/hooks`.
 
 ## Attribution and license
 

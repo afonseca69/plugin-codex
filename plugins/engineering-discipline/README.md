@@ -9,6 +9,8 @@ Installable Codex plugin exposed by the root marketplace.
   `templates/` directories.
 - Passive TaskManager SQLite engine artifacts under
   `skills/taskmanager-lite/references/taskmanager-engine/`.
+- First-class `taskmanager-engine-*` skills that operate the manual wrapper
+  explicitly.
 - Advisory lifecycle hooks in `hooks/hooks.json`.
 - Optional strict hook examples in `hooks/enforcing-hooks.json`.
 - Ledger helper in `hooks/lib/ledger.sh` for recording verification evidence.
@@ -18,8 +20,10 @@ Installable Codex plugin exposed by the root marketplace.
 The default hook set is advisory. It gives reminders and context, but does not deny actions.
 
 The reference/template material is passive skill content. It does not enable hooks, create
-background services, run TaskManager, or install command wrappers. The TaskManager engine
-artifacts are schema/config, migrations, query catalog, and copied test assets only.
+background services, auto-run TaskManager, or install command wrappers. The TaskManager engine
+artifacts include schema/config, migrations, query catalog, copied test assets, and a manual
+wrapper that is operated only through explicit user direction or the `taskmanager-engine-*`
+skills.
 
 ## Optional strict mode
 

@@ -18,7 +18,15 @@ manual commands: `init`, `status`, `next`, `export-json`, `run-sql-tests`, and
 The wrapper is not registered as a Codex command, does not enable hooks, does
 not auto-run TaskManager, and does not implement the full upstream command set.
 Use the database-free planning format below unless the user explicitly asks to
-initialize or inspect the copied SQLite engine.
+initialize, inspect, export, or test the copied SQLite engine.
+
+For explicit manual wrapper operations, use these first-class Codex skills:
+
+- `taskmanager-engine-init`
+- `taskmanager-engine-status`
+- `taskmanager-engine-next`
+- `taskmanager-engine-export`
+- `taskmanager-engine-test`
 
 ## Task shape
 
