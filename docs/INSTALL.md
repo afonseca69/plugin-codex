@@ -44,6 +44,7 @@ Expected skills:
 - `taskmanager-engine-init`
 - `taskmanager-engine-status`
 - `taskmanager-engine-next`
+- `taskmanager-engine-show`
 - `taskmanager-engine-export`
 - `taskmanager-engine-test`
 - `laravel-conventions`
@@ -64,7 +65,7 @@ plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-en
 ```
 
 The wrapper is `bin/taskmanager-engine.sh` inside that directory. It is manual only and supports
-safe `init`, `status`, `next`, `export-json`, and `run-sql-tests` commands. The
+safe `init`, `status`, `next`, `show`, `export-json`, and `run-sql-tests` commands. The
 `taskmanager-engine-*` skills are first-class Codex guides for those manual operations. These
 materials do not enable strict hooks, run automatic agents, auto-run TaskManager, or register
 Codex commands.

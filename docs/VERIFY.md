@@ -1,7 +1,7 @@
 # Verification
 
-For the `0.1.10` release readiness and parity status checkpoint, see
-[`docs/RELEASE-READINESS-0.1.10.md`](RELEASE-READINESS-0.1.10.md).
+For the `0.1.11` release readiness and parity status checkpoint, see
+[`docs/RELEASE-READINESS-0.1.11.md`](RELEASE-READINESS-0.1.11.md).
 
 ## Static checks
 
@@ -32,12 +32,13 @@ find plugins/engineering-discipline/skills -name SKILL.md -print | sort
 find . -type d -name __pycache__ -print
 ```
 
-For Phase 5C, confirm the sorted skill list includes:
+For Phase 5E, confirm the sorted skill list includes:
 
 ```text
 plugins/engineering-discipline/skills/taskmanager-engine-export/SKILL.md
 plugins/engineering-discipline/skills/taskmanager-engine-init/SKILL.md
 plugins/engineering-discipline/skills/taskmanager-engine-next/SKILL.md
+plugins/engineering-discipline/skills/taskmanager-engine-show/SKILL.md
 plugins/engineering-discipline/skills/taskmanager-engine-status/SKILL.md
 plugins/engineering-discipline/skills/taskmanager-engine-test/SKILL.md
 ```
@@ -70,6 +71,13 @@ ENGINE=plugins/engineering-discipline/skills/taskmanager-lite/references/taskman
 TMP=$(mktemp -d)
 "$ENGINE" init "$TMP"
 test -f "$TMP/.taskmanager/taskmanager.db"
+"$ENGINE" show "$TMP" overview
+"$ENGINE" show "$TMP" tasks
+"$ENGINE" show "$TMP" milestones
+"$ENGINE" show "$TMP" memories
+"$ENGINE" show "$TMP" deferrals
+"$ENGINE" show "$TMP" verifications
+"$ENGINE" show "$TMP" regressions
 "$ENGINE" status "$TMP"
 "$ENGINE" next "$TMP"
 "$ENGINE" export-json "$TMP"
@@ -77,13 +85,13 @@ test -f "$TMP/.taskmanager/taskmanager.db"
 rm -rf "$TMP"
 ```
 
-Latest local result for plugin `0.1.10`: `test_sql_queries.sh` passed 285/0,
-`test_lifecycle_e2e.sh` passed 30/0, and `test_wrapper_cli.sh` passed 19/0.
+Latest local result for plugin `0.1.11`: `test_sql_queries.sh` passed 285/0,
+`test_lifecycle_e2e.sh` passed 30/0, and `test_wrapper_cli.sh` passed 50/0.
 
 Passing these suites validates the standalone copied SQLite artifacts and the limited manual
-wrapper only. Phase 5C adds first-class Codex skill entry points for the manual wrapper; it does
-not claim full TaskManager runtime parity. Full parity still requires a broader Codex
-command/runtime design and tests.
+wrapper only. Phase 5E adds first-class Codex skill entry points and a read-only `show` wrapper
+command for initialized engine visibility; it does not claim full TaskManager runtime parity.
+Full parity still requires broader Codex command/runtime implementation and tests.
 
 ## Extended advisory hooks
 
@@ -116,7 +124,7 @@ Do not claim strict hooks are production-ready until these checks pass in the ta
 
 ## Live hook smoke-test status
 
-Last live hook smoke test was verified on WSL2 with Codex CLI `0.142.5` using installed plugin cache `0.1.3`. The 0.1.4 skill-only update, 0.1.5 reference/template update, 0.1.7 agent/persona reference update, 0.1.8 passive TaskManager engine artifact update, 0.1.9 manual TaskManager wrapper update, and 0.1.10 manual wrapper skill update did not change default hook behavior. Version 0.1.6 adds optional extended advisory hooks, but does not change `hooks/hooks.json`:
+Last live hook smoke test was verified on WSL2 with Codex CLI `0.142.5` using installed plugin cache `0.1.3`. The 0.1.4 skill-only update, 0.1.5 reference/template update, 0.1.7 agent/persona reference update, 0.1.8 passive TaskManager engine artifact update, 0.1.9 manual TaskManager wrapper update, 0.1.10 manual wrapper skill update, and 0.1.11 read-only TaskManager visibility update did not change default hook behavior. Version 0.1.6 adds optional extended advisory hooks, but does not change `hooks/hooks.json`:
 
 - marketplace added from local repository;
 - `engineering-discipline@plugin-codex` installed and enabled;

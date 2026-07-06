@@ -81,6 +81,7 @@ mkdir -p "$UNINITIALIZED"
 echo "--- Command: help ---"
 HELP_OUTPUT=$("$WRAPPER" help)
 assert_contains "$HELP_OUTPUT" "init [PROJECT_DIR]" "help documents init"
+assert_contains "$HELP_OUTPUT" "show PROJECT_DIR" "help documents read-only show"
 assert_contains "$HELP_OUTPUT" "run-sql-tests" "help documents run-sql-tests"
 assert_contains "$HELP_OUTPUT" "manual" "help includes manual safety note"
 echo ""
@@ -130,11 +131,126 @@ echo ""
 echo "--- Command: next ---"
 NEXT_EMPTY=$("$WRAPPER" next "$PROJECT")
 assert_contains "$NEXT_EMPTY" "No next tasks available" "next reports empty queue"
+echo ""
+
+echo "--- Command: show on empty DB ---"
+SHOW_EMPTY_OVERVIEW=$("$WRAPPER" show "$PROJECT" overview)
+assert_contains "$SHOW_EMPTY_OVERVIEW" "tasks: 0" "show overview handles empty tasks"
+assert_contains "$SHOW_EMPTY_OVERVIEW" "memories: 0" "show overview handles empty memories"
+SHOW_EMPTY_TASKS=$("$WRAPPER" show "$PROJECT" tasks)
+assert_contains "$SHOW_EMPTY_TASKS" "No tasks found" "show tasks handles empty table"
+SHOW_EMPTY_MILESTONES=$("$WRAPPER" show "$PROJECT" milestones)
+assert_contains "$SHOW_EMPTY_MILESTONES" "No milestones found" "show milestones handles empty table"
+SHOW_EMPTY_MEMORIES=$("$WRAPPER" show "$PROJECT" memories)
+assert_contains "$SHOW_EMPTY_MEMORIES" "No memories found" "show memories handles empty table"
+SHOW_EMPTY_DEFERRALS=$("$WRAPPER" show "$PROJECT" deferrals)
+assert_contains "$SHOW_EMPTY_DEFERRALS" "No deferrals found" "show deferrals handles empty table"
+SHOW_EMPTY_VERIFICATIONS=$("$WRAPPER" show "$PROJECT" verifications)
+assert_contains "$SHOW_EMPTY_VERIFICATIONS" "No verifications found" "show verifications handles empty table"
+SHOW_EMPTY_REGRESSIONS=$("$WRAPPER" show "$PROJECT" regressions)
+assert_contains "$SHOW_EMPTY_REGRESSIONS" "No regression checks found" "show regressions handles empty table"
+echo ""
 
 sqlite3 "$DB" "INSERT INTO tasks (id, title, status, type, priority, dependencies) VALUES ('T-001', 'Wrapper task', 'planned', 'feature', 'high', '[]');"
 NEXT_OUTPUT=$("$WRAPPER" next "$PROJECT")
 assert_contains "$NEXT_OUTPUT" "T-001" "next prints available task id"
 assert_contains "$NEXT_OUTPUT" "Wrapper task" "next prints available task title"
+echo ""
+
+sqlite3 "$DB" <<'SQL'
+INSERT INTO milestones (id, title, description, acceptance_criteria, status, phase_order)
+VALUES ('MS-001', 'Wrapper milestone', 'Milestone detail', '["Milestone works"]', 'active', 1);
+
+UPDATE tasks
+SET milestone_id = 'MS-001',
+    acceptance_criteria = '["Task works"]',
+    description = 'Task description',
+    test_strategy = 'Task test strategy'
+WHERE id = 'T-001';
+
+INSERT INTO tasks (id, title, status, type, priority, dependencies, milestone_id)
+VALUES ('T-002', 'Dependent wrapper task', 'blocked', 'feature', 'medium', '["T-001"]', 'MS-001');
+
+INSERT INTO plan_analyses (id, prd_source, scope_in, scope_out, milestone_ids, acceptance_criteria)
+VALUES ('PA-001', 'prompt', 'Runtime visibility', 'Mutating workflows', '["MS-001"]', '["Dashboard visible"]');
+
+INSERT INTO deferrals (id, source_task_id, target_task_id, title, body, reason, status)
+VALUES ('D-001', 'T-002', 'T-001', 'Deferred detail', 'Wait for visibility', 'Dependency order', 'pending');
+
+INSERT INTO verifications (id, target_type, target_id, criterion, criterion_index, status, method, evidence, verified_by)
+VALUES ('V-001', 'task', 'T-001', 'Task works', 0, 'met', 'self', 'Wrapper evidence', 'test_wrapper_cli');
+
+INSERT INTO regression_checks (id, target_type, target_id, status, verified_by, attempt, verdict_reasoning)
+VALUES ('RC-001', 'task', 'T-001', 'pass', 'test_wrapper_cli', 1, 'Wrapper regression passed');
+
+INSERT INTO memories (id, title, kind, why_important, body, source_type, source_name, importance, confidence, status, tags)
+VALUES ('M-001', 'Wrapper memory', 'process', 'Visible in show', 'Remember read-only visibility.', 'user', 'test_wrapper_cli', 4, 0.9, 'active', '["show"]');
+SQL
+
+echo "--- Command: show ---"
+if SHOW_USAGE_ERR=$("$WRAPPER" show 2>&1 >/dev/null); then
+    fail "show requires an explicit project directory"
+else
+    assert_contains "$SHOW_USAGE_ERR" "PROJECT_DIR" "show explains missing project directory"
+fi
+
+if SHOW_UNKNOWN_ERR=$("$WRAPPER" show "$PROJECT" missing-view 2>&1 >/dev/null); then
+    fail "show rejects an unknown view"
+else
+    assert_contains "$SHOW_UNKNOWN_ERR" "unknown show view" "show explains unknown view"
+fi
+
+if SHOW_TASK_USAGE_ERR=$("$WRAPPER" show "$PROJECT" task 2>&1 >/dev/null); then
+    fail "show task requires TASK_ID"
+else
+    assert_contains "$SHOW_TASK_USAGE_ERR" "TASK_ID" "show task explains missing task id"
+fi
+
+DB_SHA_BEFORE=$(sha256sum "$DB")
+SHOW_OVERVIEW=$("$WRAPPER" show "$PROJECT" overview)
+assert_contains "$SHOW_OVERVIEW" "TaskManager engine overview" "show overview prints heading"
+assert_contains "$SHOW_OVERVIEW" "Schema version: 4.2.0" "show overview prints schema version"
+assert_contains "$SHOW_OVERVIEW" "tasks: 2" "show overview prints task count"
+assert_contains "$SHOW_OVERVIEW" "regression_checks: 1" "show overview prints regression count"
+
+SHOW_DEFAULT=$("$WRAPPER" show "$PROJECT")
+assert_contains "$SHOW_DEFAULT" "TaskManager engine overview" "show defaults to overview"
+
+SHOW_TASKS=$("$WRAPPER" show "$PROJECT" tasks 1)
+assert_contains "$SHOW_TASKS" "Tasks" "show tasks prints heading"
+assert_contains "$SHOW_TASKS" "T-001" "show tasks prints task id"
+if [[ "$SHOW_TASKS" == *"T-002"* ]]; then
+    fail "show tasks honors explicit limit"
+else
+    pass "show tasks honors explicit limit"
+fi
+
+SHOW_TASK=$("$WRAPPER" show "$PROJECT" task T-001)
+assert_contains "$SHOW_TASK" "Task T-001" "show task prints task heading"
+assert_contains "$SHOW_TASK" "Wrapper task" "show task prints title"
+assert_contains "$SHOW_TASK" "Task description" "show task prints core fields"
+
+SHOW_MILESTONES=$("$WRAPPER" show "$PROJECT" milestones 5)
+assert_contains "$SHOW_MILESTONES" "MS-001" "show milestones prints milestone id"
+
+SHOW_MEMORIES=$("$WRAPPER" show "$PROJECT" memories 5)
+assert_contains "$SHOW_MEMORIES" "M-001" "show memories prints memory id"
+
+SHOW_DEFERRALS=$("$WRAPPER" show "$PROJECT" deferrals 5)
+assert_contains "$SHOW_DEFERRALS" "D-001" "show deferrals prints deferral id"
+
+SHOW_VERIFICATIONS=$("$WRAPPER" show "$PROJECT" verifications)
+assert_contains "$SHOW_VERIFICATIONS" "V-001" "show verifications prints verification id"
+SHOW_VERIFICATIONS_TASK=$("$WRAPPER" show "$PROJECT" verifications T-001)
+assert_contains "$SHOW_VERIFICATIONS_TASK" "V-001" "show verifications filters by task id"
+
+SHOW_REGRESSIONS=$("$WRAPPER" show "$PROJECT" regressions)
+assert_contains "$SHOW_REGRESSIONS" "RC-001" "show regressions prints regression id"
+SHOW_REGRESSIONS_TARGET=$("$WRAPPER" show "$PROJECT" regressions T-001)
+assert_contains "$SHOW_REGRESSIONS_TARGET" "RC-001" "show regressions filters by target id"
+
+DB_SHA_AFTER=$(sha256sum "$DB")
+assert_eq "$DB_SHA_AFTER" "$DB_SHA_BEFORE" "show modes do not mutate taskmanager.db"
 echo ""
 
 echo "--- Command: export-json ---"

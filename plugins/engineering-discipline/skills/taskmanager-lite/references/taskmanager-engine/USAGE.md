@@ -12,6 +12,7 @@ operations:
 - `taskmanager-engine-init`
 - `taskmanager-engine-status`
 - `taskmanager-engine-next`
+- `taskmanager-engine-show`
 - `taskmanager-engine-export`
 - `taskmanager-engine-test`
 
@@ -60,6 +61,26 @@ Show the next available tasks from `v_next_task` without mutating data:
 plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh next /path/to/project
 ```
 
+Show read-only runtime visibility from overview/detail/list views:
+
+```bash
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh show /path/to/project
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh show /path/to/project overview
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh show /path/to/project tasks 50
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh show /path/to/project task T-001
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh show /path/to/project milestones
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh show /path/to/project memories
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh show /path/to/project deferrals
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh show /path/to/project verifications
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh show /path/to/project verifications T-001
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh show /path/to/project regressions T-001
+```
+
+Supported views are `overview`, `tasks [limit]`, `task TASK_ID`,
+`milestones [limit]`, `memories [limit]`, `deferrals [limit]`,
+`verifications [TASK_ID]`, and `regressions [TARGET_ID]`. The command requires
+an explicit project path and opens the database with `sqlite3 -readonly`.
+
 Print a JSON export of core tables without mutating data:
 
 ```bash
@@ -75,9 +96,11 @@ plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-en
 ## Safety Limits
 
 - Writes are limited to `PROJECT_DIR/.taskmanager/` for `init`.
-- `status`, `next`, and `export-json` are read-only.
+- `status`, `next`, `show`, and `export-json` are read-only.
 - `run-sql-tests` delegates to the copied test scripts, which use disposable
   `mktemp` directories.
 - The wrapper does not implement upstream TaskManager `plan`, `run`, `verify`,
-  `show`, `update`, `memory`, or `research` command behavior.
+  `update`, `memory`, or `research` command behavior.
+- The `show` command is visibility only; it does not execute tasks, update
+  status, write verification rows, write logs, or claim upstream `show` parity.
 - Full upstream TaskManager runtime parity is not claimed.

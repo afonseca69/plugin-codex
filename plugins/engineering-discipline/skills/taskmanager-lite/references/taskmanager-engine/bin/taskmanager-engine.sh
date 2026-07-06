@@ -37,9 +37,21 @@ Manual commands:
   init [PROJECT_DIR]        Create PROJECT_DIR/.taskmanager with schema/config/logs.
   status [PROJECT_DIR]      Print schema version and core table counts.
   next [PROJECT_DIR]        Show rows from v_next_task without mutating data.
+  show PROJECT_DIR [view] [args...]
+                            Read safe runtime visibility views without mutating data.
   export-json [PROJECT_DIR] Print a JSON export of core tables without mutating data.
   run-sql-tests             Run the copied SQL query and lifecycle test scripts.
   help                      Show this help.
+
+Show views:
+  overview                  Default. Schema version and core table counts.
+  tasks [limit]             List task id, status, title, and parent_id. Default limit: 20.
+  task TASK_ID              Show one task with core fields.
+  milestones [limit]        List milestones if the table exists. Default limit: 20.
+  memories [limit]          List memories if the table exists. Default limit: 20.
+  verifications [TASK_ID]   List recent rows, or rows for one task. Default limit: 20.
+  regressions [TARGET_ID]   List recent rows, or rows for one target. Default limit: 20.
+  deferrals [limit]         List deferrals if the table exists. Default limit: 20.
 
 Safety notes:
   - This is an explicit/manual wrapper around copied SQLite artifacts.
@@ -47,6 +59,7 @@ Safety notes:
   - Writes are limited to PROJECT_DIR/.taskmanager for init, or temp directories used by tests.
   - init refuses to overwrite an existing PROJECT_DIR/.taskmanager/taskmanager.db.
   - Read-only commands require an initialized PROJECT_DIR/.taskmanager/taskmanager.db.
+  - show requires an explicit PROJECT_DIR and uses sqlite3 read-only access.
 
 Exit codes:
   0    success
@@ -121,6 +134,32 @@ table_count() {
     fi
 }
 
+schema_version_for() {
+    local db="$1"
+
+    if table_exists "$db" "schema_version"; then
+        sqlite3 -readonly "$db" "SELECT COALESCE((SELECT version FROM schema_version ORDER BY applied_at DESC LIMIT 1), 'unknown');"
+    else
+        printf 'unknown\n'
+    fi
+}
+
+validate_lookup_id() {
+    local value="$1"
+    local label="$2"
+
+    [[ -n "$value" ]] || die "$label must not be empty." "$EXIT_USAGE"
+    case "$value" in
+        *[!A-Za-z0-9._:-]*)
+            die "$label contains unsupported characters; allowed: A-Z a-z 0-9 . _ : -" "$EXIT_USAGE"
+            ;;
+    esac
+}
+
+show_usage_error() {
+    die "show requires PROJECT_DIR. Usage: taskmanager-engine.sh show PROJECT_DIR [overview|tasks [limit]|task TASK_ID|milestones [limit]|memories [limit]|verifications [TASK_ID]|regressions [TARGET_ID]|deferrals [limit]]" "$EXIT_USAGE"
+}
+
 cmd_init() {
     local project
     project="$(project_path "${1:-$PWD}")"
@@ -153,10 +192,8 @@ cmd_status() {
     local db
     db="$(require_initialized_db "$project")"
 
-    local version="unknown"
-    if table_exists "$db" "schema_version"; then
-        version="$(sqlite3 -readonly "$db" "SELECT COALESCE((SELECT version FROM schema_version ORDER BY applied_at DESC LIMIT 1), 'unknown');")"
-    fi
+    local version
+    version="$(schema_version_for "$db")"
 
     printf 'TaskManager engine status\n'
     printf 'Project: %s\n' "$project"
@@ -168,6 +205,231 @@ cmd_status() {
     for table in tasks milestones memories verifications regression_checks; do
         printf '  %s: %s\n' "$table" "$(table_count "$db" "$table")"
     done
+}
+
+parse_limit() {
+    local value="${1:-20}"
+    local label="${2:-limit}"
+
+    [[ "$value" =~ ^[0-9]+$ ]] || die "$label must be a positive integer." "$EXIT_USAGE"
+    (( value >= 1 )) || die "$label must be at least 1." "$EXIT_USAGE"
+    (( value <= 100 )) || die "$label must be 100 or less." "$EXIT_USAGE"
+    printf '%s\n' "$value"
+}
+
+show_overview() {
+    local project="$1"
+    local db="$2"
+    local version
+    version="$(schema_version_for "$db")"
+
+    printf 'TaskManager engine overview\n'
+    printf 'Project: %s\n' "$project"
+    printf 'Database: %s\n' "$db"
+    printf 'Schema version: %s\n' "$version"
+    printf 'Counts:\n'
+
+    local table
+    for table in tasks milestones memories deferrals verifications regression_checks; do
+        printf '  %s: %s\n' "$table" "$(table_count "$db" "$table")"
+    done
+}
+
+show_tasks() {
+    local db="$1"
+    local limit
+    limit="$(parse_limit "${2:-20}" "tasks limit")"
+
+    table_exists "$db" "tasks" || { printf 'No tasks table found.\n'; return 0; }
+    [[ "$(table_count "$db" "tasks")" != "0" ]] || { printf 'No tasks found.\n'; return 0; }
+
+    printf 'Tasks\n'
+    sqlite3 -readonly -header -column "$db" "
+SELECT id, status, title, COALESCE(parent_id, '') AS parent_id
+FROM tasks
+WHERE archived_at IS NULL
+ORDER BY id
+LIMIT $limit;"
+}
+
+show_task() {
+    local db="$1"
+    local task_id="$2"
+
+    validate_lookup_id "$task_id" "TASK_ID"
+    table_exists "$db" "tasks" || die "tasks table does not exist in $db."
+    [[ "$(sqlite3 -readonly "$db" "SELECT COUNT(*) FROM tasks WHERE id = '$task_id';")" == "1" ]] || die "Task not found: $task_id"
+
+    printf 'Task %s\n' "$task_id"
+    sqlite3 -readonly -header -column "$db" "
+SELECT
+  id,
+  COALESCE(parent_id, '') AS parent_id,
+  title,
+  COALESCE(description, '') AS description,
+  COALESCE(details, '') AS details,
+  COALESCE(test_strategy, '') AS test_strategy,
+  status,
+  type,
+  priority,
+  COALESCE(milestone_id, '') AS milestone_id,
+  dependencies,
+  acceptance_criteria
+FROM tasks
+WHERE id = '$task_id';"
+}
+
+show_milestones() {
+    local db="$1"
+    local limit
+    limit="$(parse_limit "${2:-20}" "milestones limit")"
+
+    table_exists "$db" "milestones" || { printf 'No milestones table found.\n'; return 0; }
+    [[ "$(table_count "$db" "milestones")" != "0" ]] || { printf 'No milestones found.\n'; return 0; }
+
+    printf 'Milestones\n'
+    sqlite3 -readonly -header -column "$db" "
+SELECT id, status, title, phase_order
+FROM milestones
+ORDER BY phase_order, id
+LIMIT $limit;"
+}
+
+show_memories() {
+    local db="$1"
+    local limit
+    limit="$(parse_limit "${2:-20}" "memories limit")"
+
+    table_exists "$db" "memories" || { printf 'No memories table found.\n'; return 0; }
+    [[ "$(table_count "$db" "memories")" != "0" ]] || { printf 'No memories found.\n'; return 0; }
+
+    printf 'Memories\n'
+    sqlite3 -readonly -header -column "$db" "
+SELECT id, status, kind, importance, title
+FROM memories
+ORDER BY updated_at DESC, created_at DESC, id
+LIMIT $limit;"
+}
+
+show_deferrals() {
+    local db="$1"
+    local limit
+    limit="$(parse_limit "${2:-20}" "deferrals limit")"
+
+    table_exists "$db" "deferrals" || { printf 'No deferrals table found.\n'; return 0; }
+    [[ "$(table_count "$db" "deferrals")" != "0" ]] || { printf 'No deferrals found.\n'; return 0; }
+
+    printf 'Deferrals\n'
+    sqlite3 -readonly -header -column "$db" "
+SELECT id, status, source_task_id, COALESCE(target_task_id, '') AS target_task_id, title
+FROM deferrals
+ORDER BY updated_at DESC, created_at DESC, id
+LIMIT $limit;"
+}
+
+show_verifications() {
+    local db="$1"
+    local task_id="${2:-}"
+
+    table_exists "$db" "verifications" || { printf 'No verifications table found.\n'; return 0; }
+    [[ "$(table_count "$db" "verifications")" != "0" ]] || { printf 'No verifications found.\n'; return 0; }
+
+    printf 'Verifications\n'
+    if [[ -n "$task_id" ]]; then
+        validate_lookup_id "$task_id" "TASK_ID"
+        sqlite3 -readonly -header -column "$db" "
+SELECT id, target_type, target_id, criterion_index, status, method, attempt
+FROM verifications
+WHERE target_type = 'task' AND target_id = '$task_id'
+ORDER BY attempt DESC, created_at DESC, id
+LIMIT 20;"
+    else
+        sqlite3 -readonly -header -column "$db" "
+SELECT id, target_type, target_id, criterion_index, status, method, attempt
+FROM verifications
+ORDER BY created_at DESC, target_type, target_id, attempt DESC, id
+LIMIT 20;"
+    fi
+}
+
+show_regressions() {
+    local db="$1"
+    local target_id="${2:-}"
+
+    table_exists "$db" "regression_checks" || { printf 'No regression checks table found.\n'; return 0; }
+    [[ "$(table_count "$db" "regression_checks")" != "0" ]] || { printf 'No regression checks found.\n'; return 0; }
+
+    printf 'Regression checks\n'
+    if [[ -n "$target_id" ]]; then
+        validate_lookup_id "$target_id" "TARGET_ID"
+        sqlite3 -readonly -header -column "$db" "
+SELECT id, target_type, target_id, status, verified_by, attempt
+FROM regression_checks
+WHERE target_id = '$target_id'
+ORDER BY attempt DESC, created_at DESC, id
+LIMIT 20;"
+    else
+        sqlite3 -readonly -header -column "$db" "
+SELECT id, target_type, target_id, status, verified_by, attempt
+FROM regression_checks
+ORDER BY created_at DESC, target_type, target_id, attempt DESC, id
+LIMIT 20;"
+    fi
+}
+
+cmd_show() {
+    [[ $# -ge 1 ]] || show_usage_error
+
+    local project
+    project="$(project_path "$1")"
+    shift
+
+    require_sqlite
+    local db
+    db="$(require_initialized_db "$project")"
+
+    local view="${1:-overview}"
+    if [[ $# -gt 0 ]]; then
+        shift
+    fi
+
+    case "$view" in
+        overview)
+            [[ $# -eq 0 ]] || die "show overview does not accept extra arguments." "$EXIT_USAGE"
+            show_overview "$project" "$db"
+            ;;
+        tasks)
+            [[ $# -le 1 ]] || die "show tasks accepts at most one limit argument." "$EXIT_USAGE"
+            show_tasks "$db" "${1:-20}"
+            ;;
+        task)
+            [[ $# -eq 1 ]] || die "show task requires TASK_ID." "$EXIT_USAGE"
+            show_task "$db" "$1"
+            ;;
+        milestones)
+            [[ $# -le 1 ]] || die "show milestones accepts at most one limit argument." "$EXIT_USAGE"
+            show_milestones "$db" "${1:-20}"
+            ;;
+        memories)
+            [[ $# -le 1 ]] || die "show memories accepts at most one limit argument." "$EXIT_USAGE"
+            show_memories "$db" "${1:-20}"
+            ;;
+        verifications)
+            [[ $# -le 1 ]] || die "show verifications accepts at most one TASK_ID argument." "$EXIT_USAGE"
+            show_verifications "$db" "${1:-}"
+            ;;
+        regressions)
+            [[ $# -le 1 ]] || die "show regressions accepts at most one TARGET_ID argument." "$EXIT_USAGE"
+            show_regressions "$db" "${1:-}"
+            ;;
+        deferrals)
+            [[ $# -le 1 ]] || die "show deferrals accepts at most one limit argument." "$EXIT_USAGE"
+            show_deferrals "$db" "${1:-20}"
+            ;;
+        *)
+            die "unknown show view: $view" "$EXIT_USAGE"
+            ;;
+    esac
 }
 
 cmd_next() {
@@ -308,6 +570,10 @@ main() {
         next)
             [[ $# -le 1 ]] || die "next accepts at most one PROJECT_DIR argument." "$EXIT_USAGE"
             cmd_next "${1:-$PWD}"
+            ;;
+        show)
+            [[ $# -ge 1 ]] || show_usage_error
+            cmd_show "$@"
             ;;
         export-json)
             [[ $# -le 1 ]] || die "export-json accepts at most one PROJECT_DIR argument." "$EXIT_USAGE"
