@@ -444,7 +444,9 @@ The repository is now a functional Codex plugin with Phase 1 skill coverage, Pha
 reference/template coverage, Phase 3 optional extended advisory hook coverage, Phase 4
 agent/persona reference coverage, Phase 5A TaskManager SQLite engine artifacts, Phase 5B manual
 TaskManager engine wrappers, and Phase 5C first-class manual wrapper operation skills. It is
-still not a full parity port of the original `mwguerra/plugins` suite.
+still not a full parity port of the original `mwguerra/plugins` suite. The `0.1.10` release
+readiness and parity status checkpoint is recorded in
+[`docs/RELEASE-READINESS-0.1.10.md`](RELEASE-READINESS-0.1.10.md).
 
 The next safe TaskManager step is broader Codex-native command/runtime design and testing. Do not
 claim full SQLite-backed TaskManager runtime parity until the original command behavior exists and
