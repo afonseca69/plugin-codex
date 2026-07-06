@@ -78,5 +78,8 @@ through `run-sql-tests`.
 ## Remaining Gaps
 
 The upstream TaskManager command set is still not ported as a full Codex
-runtime. Mutating runtime workflows remain future work and require their own
-explicit wrapper commands, operator skills, and before/after database tests.
+runtime. Post-5E update: Phase 5F added explicit manual memory add/deprecate
+operations, but broader mutating workflows such as plan/run/verify/update,
+research, memory update/supersede, and conflict reconciliation remain future
+work and require their own explicit wrapper commands, operator skills, and
+before/after database tests.

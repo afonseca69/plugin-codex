@@ -18,6 +18,13 @@ read-only visibility slice from this design through
 milestone, memory, deferral, verification, and regression views and does not
 claim full upstream `show` or TaskManager runtime parity.
 
+Post-design update: Phase 5F in plugin version `0.1.12` implements a narrow
+manual memory slice from this design through `memory-list`, `memory-show`,
+`memory-search`, `memory-add`, and `memory-deprecate` wrapper commands and the
+`taskmanager-engine-memory` skill. It remains limited to explicit memory list,
+detail, search, single-row add, and status-only deprecation; it does not claim
+full upstream `memory`, research, or TaskManager runtime parity.
+
 ## Context
 
 The upstream TaskManager plugin in `../mwguerra-plugins/taskmanager` provides a
@@ -127,7 +134,7 @@ The upstream TaskManager command set is:
 | `update` | Modify task fields, status, tags, dependencies, milestones, deferrals, and scope. | Mutates DB. | Not implemented. |
 | `export` | Export JSON for tasks, memories, verifications, all data, or markdown task files. | Read-only for stdout JSON; writes when output file or task files requested. | Partially supported by `export-json` for core JSON to stdout. |
 | `research` | Combine codebase analysis and web research, then store findings as memories. | Reads repo and network; mutates memories/state/logs. | Not implemented. |
-| `memory` | Add, list, show, search, update, deprecate, supersede, and check memory conflicts. | Mixed read-only and DB mutation. | Not implemented. |
+| `memory` | Add, list, show, search, update, deprecate, supersede, and check memory conflicts. | Mixed read-only and DB mutation. | Phase 5F implements a limited manual subset: list, show, search, add, and status-only deprecate. Full upstream `memory` is not implemented. |
 
 ## Safely Supported By The Manual Wrapper
 
@@ -138,6 +145,8 @@ The current manual wrapper safely supports:
 - refusing to overwrite an existing `.taskmanager/taskmanager.db`;
 - reading schema version and core table counts;
 - reading rows from `v_next_task`;
+- read-only memory list, detail, and search, with FTS preferred and LIKE fallback;
+- explicit single-row memory add and status-only deprecation;
 - exporting core JSON data to stdout without mutating the database;
 - running copied SQL and lifecycle tests in disposable test state;
 - no hook changes, no Codex command registration, no background jobs, no task
@@ -147,7 +156,7 @@ The current wrapper does not safely support:
 
 - planning from PRDs into the DB;
 - executing or verifying tasks;
-- direct memory CRUD;
+- memory update, supersede, conflict reconciliation, or research-backed memory workflows;
 - research;
 - full dashboards or stats;
 - task update workflows;
@@ -457,6 +466,21 @@ Purpose:
 
 - Manage long-lived project memories in `memories` and `memories_fts`.
 
+Phase 5F implemented subset:
+
+- `memory-list PROJECT_DIR [limit]` opens the DB read-only and lists memory id,
+  type, importance, confidence, status, and title.
+- `memory-show PROJECT_DIR MEMORY_ID` opens the DB read-only and shows one
+  memory's useful fields.
+- `memory-search PROJECT_DIR QUERY [limit]` opens the DB read-only, tries
+  `memories_fts` first, and falls back to `LIKE` over title/body/tags when FTS
+  is unavailable or rejects the query syntax.
+- `memory-add PROJECT_DIR TYPE TITLE BODY [IMPORTANCE] [CONFIDENCE]` validates
+  enum/range/text inputs and inserts one active row with the next `M-NNN` id.
+- `memory-deprecate PROJECT_DIR MEMORY_ID REASON` validates the id/reason and
+  sets `status = 'deprecated'` without deleting data. The schema has no clean
+  deprecation-reason field, so the reason is not stored.
+
 Codex-native design:
 
 - Implement read modes first: list, show, search, stats.
@@ -471,6 +495,8 @@ Safety:
 - User-created memories are not auto-updated.
 - Supersession preserves history.
 - FTS search uses safe escaping or parameterized helper behavior where possible.
+- No deletion, web research, auto-classification, or hidden conflict
+  reconciliation occurs in Phase 5F.
 
 ### `taskmanager-engine-research`
 
@@ -580,15 +606,15 @@ smoke-test evidence.
    Add shared wrapper helpers only if needed, require explicit project paths for
    new commands, and implement `show` modes that are provably read-only.
 
-2. Phase 5F: export hardening.
+2. Phase 5F: safe manual memory operations. Completed in `0.1.12`.
+
+   Implemented list/show/search, explicit add, and status-only deprecate with
+   before/after DB assertions and no hook changes.
+
+3. Phase 5G: export hardening.
 
    Add table-selective JSON export and explicit output-file behavior before
    markdown task file generation.
-
-3. Phase 5G: DB-only `memory` read and write workflows.
-
-   Start with list/show/search, then add add/update/deprecate/supersede with
-   before/after DB assertions.
 
 4. Phase 5H: DB-only `update` workflows.
 
