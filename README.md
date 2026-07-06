@@ -107,6 +107,8 @@ wrapper at `bin/taskmanager-engine.sh`. The wrapper supports explicit `init`, `s
 `export-json`, and `run-sql-tests` commands, but it is not registered as a Codex command and is
 not a full TaskManager runtime. The `taskmanager-engine-*` skills are first-class Codex operator
 guides for that wrapper; they do not add hidden runtime behavior or full upstream command parity.
+Future TaskManager runtime parity is scoped in
+[`docs/PHASE5D-TASKMANAGER-RUNTIME-DESIGN.md`](docs/PHASE5D-TASKMANAGER-RUNTIME-DESIGN.md).
 
 ## Hooks policy
 
