@@ -147,6 +147,9 @@ Phase 5B adds a small manual shell wrapper for `init`, `status`, `next`, `export
 
 Those skills are operator guides around the manual wrapper. They are not hidden runtime services,
 are not registered Codex commands, and do not make this parity with the SQLite-backed original.
+Phase 5D records a future runtime design in
+[`docs/PHASE5D-TASKMANAGER-RUNTIME-DESIGN.md`](PHASE5D-TASKMANAGER-RUNTIME-DESIGN.md);
+it does not implement the missing commands.
 
 ## Skill coverage and remaining gaps
 
@@ -435,19 +438,36 @@ commands, auto-run TaskManager, or claim full upstream TaskManager parity.
 
 ### Phase 5D — Consider broader TaskManager runtime parity
 
-Future work can design Codex-native runtime wrappers for the original TaskManager command set and
-prove them with runtime tests before claiming broader parity.
+Status: documented as a design-only architecture phase after plugin `0.1.10`.
+
+Phase 5D adds
+[`docs/PHASE5D-TASKMANAGER-RUNTIME-DESIGN.md`](PHASE5D-TASKMANAGER-RUNTIME-DESIGN.md),
+which maps the upstream TaskManager command surface, current manual wrapper baseline, missing
+runtime parity, safety model, storage boundaries, future command-by-command design, testing
+strategy, risks, non-goals, and recommended implementation slices.
+
+Deliberate exclusions in this phase:
+
+- no plugin runtime behavior changes;
+- no new wrapper subcommands;
+- no new skills;
+- no hook changes or hook enablement;
+- no plugin version bump;
+- no implementation of `plan`, `run`, `verify`, `show`, `update`, `memory`, or `research`;
+- no full TaskManager runtime parity claim.
 
 ## Current verdict
 
 The repository is now a functional Codex plugin with Phase 1 skill coverage, Phase 2
 reference/template coverage, Phase 3 optional extended advisory hook coverage, Phase 4
 agent/persona reference coverage, Phase 5A TaskManager SQLite engine artifacts, Phase 5B manual
-TaskManager engine wrappers, and Phase 5C first-class manual wrapper operation skills. It is
-still not a full parity port of the original `mwguerra/plugins` suite. The `0.1.10` release
+TaskManager engine wrappers, Phase 5C first-class manual wrapper operation skills, and Phase 5D
+runtime parity design. It is still not a full parity port of the original `mwguerra/plugins`
+suite. The `0.1.10` release
 readiness and parity status checkpoint is recorded in
 [`docs/RELEASE-READINESS-0.1.10.md`](RELEASE-READINESS-0.1.10.md).
 
-The next safe TaskManager step is broader Codex-native command/runtime design and testing. Do not
-claim full SQLite-backed TaskManager runtime parity until the original command behavior exists and
-passes live validation.
+The next safe TaskManager step is an incremental implementation slice from the Phase 5D design,
+starting with read-only runtime visibility before mutating workflows. Do not claim full
+SQLite-backed TaskManager runtime parity until the original command behavior exists and passes
+direct validation.
