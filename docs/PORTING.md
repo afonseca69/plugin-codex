@@ -18,12 +18,12 @@ This repository adapts the engineering workflow ideas from `mwguerra/plugins` to
   Codex planning workflow.
 - A small manual TaskManager engine wrapper is available at
   `taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh` for explicit
-  `init`, `status`, `next`, read-only `show`, manual memory list/show/search/add/deprecate,
-  `export-json`, and `run-sql-tests` usage.
+  `init`, `status`, `next`, read-only `show`, manual task add/status/title/archive, manual
+  memory list/show/search/add/deprecate, `export-json`, and `run-sql-tests` usage.
 - First-class `taskmanager-engine-*` Codex skills guide explicit use of that manual wrapper,
-  including read-only TaskManager runtime visibility and explicit manual memory operations.
-- Automatic TaskManager runtime behavior, broad mutating TaskManager workflows, research-backed
-  memories, and full upstream command parity are not ported yet.
+  including read-only TaskManager runtime visibility and explicit manual task/memory operations.
+- Automatic TaskManager runtime behavior, broad mutating TaskManager workflows, verification
+  recording, research-backed memories, and full upstream command parity are not ported yet.
 - Selected upstream references and templates now live under Codex skill-local
   `references/` and `templates/` directories, rewritten for `AGENTS.md`, Codex skills,
   `docs/`, evidence, and verification language.

@@ -10,7 +10,9 @@ read-only inspection, JSON export, and copied SQL test execution. Phase 5C adds
 first-class Codex skills that guide explicit use of that manual wrapper. Phase
 5E adds a read-only `show` wrapper command and skill for runtime visibility over
 initialized engine state. Phase 5F adds explicit manual memory list/show/search,
-add, and deprecate commands plus a first-class memory operation skill.
+add, and deprecate commands plus a first-class memory operation skill. Phase 5G
+adds explicit manual task add/status/title/archive commands plus a first-class
+task operation skill.
 
 ## Contents
 
@@ -59,6 +61,11 @@ bin/taskmanager-engine.sh init /path/to/project
 bin/taskmanager-engine.sh status /path/to/project
 bin/taskmanager-engine.sh next /path/to/project
 bin/taskmanager-engine.sh show /path/to/project
+bin/taskmanager-engine.sh task-add /path/to/project 1 "Parent task" feature planned
+bin/taskmanager-engine.sh task-add /path/to/project 1.1 "Child task" task planned 1
+bin/taskmanager-engine.sh task-set-status /path/to/project 1.1 in-progress
+bin/taskmanager-engine.sh task-update-title /path/to/project 1.1 "Child task updated"
+bin/taskmanager-engine.sh task-archive /path/to/project 1.1
 bin/taskmanager-engine.sh memory-list /path/to/project
 bin/taskmanager-engine.sh memory-show /path/to/project M-001
 bin/taskmanager-engine.sh memory-search /path/to/project query
@@ -78,6 +85,16 @@ existing `.taskmanager/taskmanager.db`.
 `show` requires an explicit project path and
 supports read-only overview, task list, task detail, milestone, memory,
 deferral, verification, and regression views.
+`task-add`, `task-set-status`, `task-update-title`, and `task-archive` require
+an explicit project path and mutate only
+`PROJECT_DIR/.taskmanager/taskmanager.db`. `task-add` inserts one task row,
+validates duplicate ids and parent existence, and stores schema-constrained task
+types. Generic input type `task` is normalized to the schema default `feature`.
+`task-set-status` updates one row and sets `started_at`/`completed_at` on simple
+state entry without erasing completion history. `task-update-title` updates only
+`title` and `updated_at`. `task-archive` sets `archived_at` without deleting the
+task. Task commands do not cascade parent statuses, execute work, or write
+verification or regression rows.
 `memory-add` and `memory-deprecate` require an explicit project path and mutate
 only `PROJECT_DIR/.taskmanager/taskmanager.db`. `memory-add` inserts one active
 memory row and relies on existing schema triggers for FTS. `memory-deprecate`
@@ -98,6 +115,7 @@ operations:
 - `taskmanager-engine-status`
 - `taskmanager-engine-next`
 - `taskmanager-engine-show`
+- `taskmanager-engine-task`
 - `taskmanager-engine-memory`
 - `taskmanager-engine-export`
 - `taskmanager-engine-test`
@@ -146,12 +164,13 @@ bash tests/test_wrapper_cli.sh
 
 Passing these tests validates the copied SQLite artifacts as standalone files and the limited
 manual wrapper.
-Latest local artifact result for Phase 5F: `test_sql_queries.sh` passed 285/0,
-`test_lifecycle_e2e.sh` passed 30/0, and `test_wrapper_cli.sh` passed 77/0
+Latest local artifact result for Phase 5G: `test_sql_queries.sh` passed 285/0,
+`test_lifecycle_e2e.sh` passed 30/0, and `test_wrapper_cli.sh` passed 118/0
 while also running the copied SQL suites through `run-sql-tests`.
 
 This does not prove full Codex TaskManager runtime parity. The port still does
 not provide Codex command registration, automatic agents, hook-driven execution,
 or the full upstream command set. Phase 5F adds only safe manual memory
-operations for initialized copied engine state; plan/run/verify/update/research
-and full upstream memory workflows remain outside this port.
+operations, and Phase 5G adds only safe manual task operations, for initialized
+copied engine state; plan/run/verify/broad update/research and full upstream
+task or memory workflows remain outside this port.

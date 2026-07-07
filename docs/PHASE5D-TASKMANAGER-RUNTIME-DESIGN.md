@@ -25,6 +25,13 @@ manual memory slice from this design through `memory-list`, `memory-show`,
 detail, search, single-row add, and status-only deprecation; it does not claim
 full upstream `memory`, research, or TaskManager runtime parity.
 
+Post-design update: Phase 5G in plugin version `0.1.13` implements a narrow
+manual task-operation slice from this design through `task-add`,
+`task-set-status`, `task-update-title`, and soft `task-archive` wrapper commands
+and the `taskmanager-engine-task` skill. It remains limited to explicit
+single-row task mutation, does not cascade parent statuses or write verification
+rows, and does not claim full upstream `update` or TaskManager runtime parity.
+
 ## Context
 
 The upstream TaskManager plugin in `../mwguerra-plugins/taskmanager` provides a
@@ -131,7 +138,7 @@ The upstream TaskManager command set is:
 | `run` | Select or execute tasks, apply memories and deferrals, update statuses, perform work, verify before done, and propagate status. | Mutates DB and may mutate repository files when performing task work. | Not implemented. |
 | `verify` | Verify tasks, milestones, or PRD criteria with captured evidence and adversarial review; record verification rows. | Mutates verification rows and task status. | Not implemented. |
 | `show` | Read dashboard, task details, next tasks, stats, deferrals, milestones, verification, and plan analyses. | Read-only. | Phase 5E implements a limited read-only subset: overview, task list/detail, milestones, memories, deferrals, verifications, and regressions. Full upstream `show` is not implemented. |
-| `update` | Modify task fields, status, tags, dependencies, milestones, deferrals, and scope. | Mutates DB. | Not implemented. |
+| `update` | Modify task fields, status, tags, dependencies, milestones, deferrals, and scope. | Mutates DB. | Phase 5G implements a limited manual subset for add, status, title, and soft archive. Broad upstream `update` is not implemented. |
 | `export` | Export JSON for tasks, memories, verifications, all data, or markdown task files. | Read-only for stdout JSON; writes when output file or task files requested. | Partially supported by `export-json` for core JSON to stdout. |
 | `research` | Combine codebase analysis and web research, then store findings as memories. | Reads repo and network; mutates memories/state/logs. | Not implemented. |
 | `memory` | Add, list, show, search, update, deprecate, supersede, and check memory conflicts. | Mixed read-only and DB mutation. | Phase 5F implements a limited manual subset: list, show, search, add, and status-only deprecate. Full upstream `memory` is not implemented. |
@@ -145,6 +152,7 @@ The current manual wrapper safely supports:
 - refusing to overwrite an existing `.taskmanager/taskmanager.db`;
 - reading schema version and core table counts;
 - reading rows from `v_next_task`;
+- explicit single-row task add, status update, title update, and soft archive;
 - read-only memory list, detail, and search, with FTS preferred and LIKE fallback;
 - explicit single-row memory add and status-only deprecation;
 - exporting core JSON data to stdout without mutating the database;
@@ -156,10 +164,10 @@ The current wrapper does not safely support:
 
 - planning from PRDs into the DB;
 - executing or verifying tasks;
+- broad task updates for tags, dependencies, milestones, deferrals, scope, or done gates;
 - memory update, supersede, conflict reconciliation, or research-backed memory workflows;
 - research;
 - full dashboards or stats;
-- task update workflows;
 - output file generation except when a user redirects stdout themselves;
 - schema migration orchestration;
 - automatic subagent verification;
@@ -611,12 +619,17 @@ smoke-test evidence.
    Implemented list/show/search, explicit add, and status-only deprecate with
    before/after DB assertions and no hook changes.
 
-3. Phase 5G: export hardening.
+3. Phase 5G: safe manual task operations. Completed in `0.1.13`.
+
+   Implemented explicit task add, status update, title update, and soft archive
+   with before/after DB assertions and no hook changes.
+
+4. Future slice: export hardening.
 
    Add table-selective JSON export and explicit output-file behavior before
    markdown task file generation.
 
-4. Phase 5H: DB-only `update` workflows.
+5. Future slice: broader DB-only `update` workflows.
 
    Implement simple field updates, tag/dependency edits, and guarded status
    changes before AI-assisted rewrites or scope cascades.

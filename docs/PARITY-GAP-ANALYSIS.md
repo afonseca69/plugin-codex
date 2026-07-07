@@ -20,7 +20,7 @@ It currently includes:
 - advisory hooks enabled by default
 - optional extended advisory hooks kept out of default config
 - optional strict hooks kept out of default config
-- 28 first-class Codex skills
+- 29 first-class Codex skills
 - selected Codex-adapted references and templates under existing skill directories
 - 8 Codex-native agent/persona reference guides under existing skill directories
 - TaskManager SQLite engine artifacts and a manual opt-in wrapper under
@@ -54,6 +54,7 @@ Current Codex skills:
 - `taskmanager-engine-next`
 - `taskmanager-engine-show`
 - `taskmanager-engine-status`
+- `taskmanager-engine-task`
 - `taskmanager-engine-test`
 - `taskmanager-lite`
 
@@ -73,8 +74,8 @@ Current Codex reference/template/persona coverage:
   TaskManager-lite planning persona, acceptance verifier persona, TaskManager SQLite engine
   artifacts, and a manual engine wrapper.
 - `taskmanager-engine-*`: first-class Codex skills for explicit manual wrapper operation
-  (`init`, `status`, `next`, read-only `show`, manual memory operations, `export-json`, and
-  copied engine tests).
+  (`init`, `status`, `next`, read-only `show`, manual task operations, manual memory operations,
+  `export-json`, and copied engine tests).
 
 ## Original Claude plugins
 
@@ -141,13 +142,14 @@ The original TaskManager command set has not been ported as full Codex runtime w
 `taskmanager-lite` remains the active planning workflow. Phase 5A adds SQLite engine artifacts,
 Phase 5B adds a small manual shell wrapper for `init`, `status`, `next`, `export-json`, and
 `run-sql-tests`, Phase 5C adds first-class Codex skills that operate that wrapper explicitly,
-Phase 5E adds read-only `show` runtime visibility, and Phase 5F adds safe manual memory
-operations:
+Phase 5E adds read-only `show` runtime visibility, Phase 5F adds safe manual memory operations,
+and Phase 5G adds safe manual task operations:
 
 - `taskmanager-engine-init`
 - `taskmanager-engine-status`
 - `taskmanager-engine-next`
 - `taskmanager-engine-show`
+- `taskmanager-engine-task`
 - `taskmanager-engine-memory`
 - `taskmanager-engine-export`
 - `taskmanager-engine-test`
@@ -160,10 +162,14 @@ the full upstream `show` UX.
 The Phase 5F memory support is limited to manual `memory-list`, `memory-show`,
 `memory-search`, `memory-add`, and `memory-deprecate`; it does not implement upstream memory
 update/supersede/conflict workflows or research-backed memory behavior.
+The Phase 5G task support is limited to manual `task-add`, `task-set-status`,
+`task-update-title`, and soft `task-archive`; it does not implement upstream planning,
+execution, verification, broad task update workflows, status cascades, or done gates.
 Phase 5D records a future runtime design in
 [`docs/PHASE5D-TASKMANAGER-RUNTIME-DESIGN.md`](PHASE5D-TASKMANAGER-RUNTIME-DESIGN.md);
 Phase 5E implements the first read-only visibility slice from that design, and Phase 5F
-implements a narrow manual memory slice.
+implements a narrow manual memory slice. Phase 5G implements a narrow manual task-operation
+slice.
 
 ## Skill coverage and remaining gaps
 
@@ -217,8 +223,8 @@ The underlying SQLite schema, migrations, query catalog, copied SQL tests, and a
 wrapper are now present under `taskmanager-lite/references/taskmanager-engine/`, with
 first-class Codex skills for the supported manual wrapper operations.
 Phase 5E adds limited read-only `show` visibility, and Phase 5F adds safe manual
-memory list/show/search/add/deprecate operations, but this is still not full
-TaskManager command parity.
+memory list/show/search/add/deprecate operations. Phase 5G adds safe manual task
+add/status/title/archive operations, but this is still not full TaskManager command parity.
 
 ## Original agents converted to Codex references
 
@@ -268,9 +274,9 @@ Original hooks intentionally not default-enabled:
 
 ## TaskManager engine artifacts, manual wrapper, and wrapper skills
 
-Phase 5A, Phase 5B, Phase 5C, Phase 5E, and Phase 5F include the SQLite-backed TaskManager engine
-artifacts, manual wrapper, read-only visibility, manual memory operations, and manual wrapper
-operation skills under
+Phase 5A, Phase 5B, Phase 5C, Phase 5E, Phase 5F, and Phase 5G include the SQLite-backed
+TaskManager engine artifacts, manual wrapper, read-only visibility, manual task and memory
+operations, and manual wrapper operation skills under
 `plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/`:
 
 - `schemas/default-config.json`
@@ -301,14 +307,18 @@ Phase 5F adds:
 
 - `taskmanager-engine-memory`
 
+Phase 5G adds:
+
+- `taskmanager-engine-task`
+
 This is artifact/reference parity plus a limited manual wrapper and skill-level operator guides,
 not full runtime parity. The copied tests are adapted only to read the upstream verify guard SQL
 from a local passive test fixture because Phase 5A does not port
 `taskmanager/commands/verify.md` as a command. The Phase 5B wrapper initializes and inspects the
 copied SQLite engine, Phase 5C documents that wrapper as first-class skills, Phase 5E adds
 read-only `show` visibility for initialized engine state, and Phase 5F adds explicit memory
-list/show/search/add/deprecate operations. These phases do not implement the original
-TaskManager command set.
+list/show/search/add/deprecate operations. Phase 5G adds explicit task add/status/title/archive
+operations. These phases do not implement the original TaskManager command set.
 
 ## Recommended conversion phases
 
@@ -561,19 +571,54 @@ Deliberate exclusions in this phase:
 - no full upstream `memory` parity claim;
 - no full TaskManager runtime parity claim.
 
+### Phase 5G — Safe manual TaskManager task operations
+
+Status: completed in Codex plugin `0.1.13` as a limited manual task-operation slice.
+Detailed behavior and safety notes are recorded in
+[`docs/PHASE5G-TASKMANAGER-TASK-OPERATIONS.md`](PHASE5G-TASKMANAGER-TASK-OPERATIONS.md).
+
+Added under `taskmanager-lite/references/taskmanager-engine/`:
+
+- explicit mutating `task-add PROJECT_DIR TASK_ID TITLE [TYPE] [STATUS] [PARENT_ID]`;
+- explicit mutating `task-set-status PROJECT_DIR TASK_ID STATUS`;
+- explicit mutating `task-update-title PROJECT_DIR TASK_ID TITLE`;
+- explicit soft-archive `task-archive PROJECT_DIR TASK_ID`;
+- wrapper tests for creation, duplicate refusal, parent validation, status validation,
+  timestamp behavior, title updates, soft archival, show/next visibility, and usage errors.
+
+Added under `plugins/engineering-discipline/skills/`:
+
+- `taskmanager-engine-task`
+
+Deliberate exclusions in this phase:
+
+- no hook behavior changes;
+- no changes to `hooks/hooks.json`;
+- no strict hook enablement;
+- no first-class Codex command registration;
+- no automatic TaskManager execution;
+- no background jobs, external integrations, schedulers, or web research;
+- no upstream TaskManager `plan`, `run`, `verify`, broad `update`, `memory`, or `research`
+  behavior;
+- no parent status cascade beyond schema-defined behavior;
+- no verification or regression row writes;
+- no task deletion;
+- no full upstream task/update parity claim;
+- no full TaskManager runtime parity claim.
+
 ## Current verdict
 
 The repository is now a functional Codex plugin with Phase 1 skill coverage, Phase 2
 reference/template coverage, Phase 3 optional extended advisory hook coverage, Phase 4
 agent/persona reference coverage, Phase 5A TaskManager SQLite engine artifacts, Phase 5B manual
 TaskManager engine wrappers, Phase 5C first-class manual wrapper operation skills, Phase 5D
-runtime parity design, Phase 5E read-only TaskManager runtime visibility, and Phase 5F safe manual
-TaskManager memory operations. It is still not a full parity port of the original
-`mwguerra/plugins` suite. The `0.1.12` release readiness and
+runtime parity design, Phase 5E read-only TaskManager runtime visibility, Phase 5F safe manual
+TaskManager memory operations, and Phase 5G safe manual TaskManager task operations. It is still
+not a full parity port of the original `mwguerra/plugins` suite. The `0.1.13` release readiness and
 parity status checkpoint is recorded in
-[`docs/RELEASE-READINESS-0.1.12.md`](RELEASE-READINESS-0.1.12.md).
+[`docs/RELEASE-READINESS-0.1.13.md`](RELEASE-READINESS-0.1.13.md).
 
 The next safe TaskManager step is another incremental implementation slice from the Phase 5D
-design, such as export hardening or small guarded update workflows. Do not claim full
+design, such as verification recording or broader guarded update workflows. Do not claim full
 SQLite-backed TaskManager runtime parity until the original command behavior exists and passes
 direct validation.

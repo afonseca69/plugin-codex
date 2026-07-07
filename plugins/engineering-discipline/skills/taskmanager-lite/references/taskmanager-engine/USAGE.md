@@ -13,6 +13,7 @@ operations:
 - `taskmanager-engine-status`
 - `taskmanager-engine-next`
 - `taskmanager-engine-show`
+- `taskmanager-engine-task`
 - `taskmanager-engine-memory`
 - `taskmanager-engine-export`
 - `taskmanager-engine-test`
@@ -82,6 +83,30 @@ Supported views are `overview`, `tasks [limit]`, `task TASK_ID`,
 `verifications [TASK_ID]`, and `regressions [TARGET_ID]`. The command requires
 an explicit project path and opens the database with `sqlite3 -readonly`.
 
+Add or update one task through explicit database mutation:
+
+```bash
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh task-add /path/to/project 1 "Parent task" feature planned
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh task-add /path/to/project 1.1 "Child task" task planned 1
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh task-set-status /path/to/project 1.1 in-progress
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh task-update-title /path/to/project 1.1 "Child task updated"
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh task-archive /path/to/project 1.1
+```
+
+`task-add` requires an explicit `TASK_ID` and `TITLE`, refuses duplicate ids,
+validates parent existence when `PARENT_ID` is provided, and stores schema-safe
+defaults for omitted optional fields. Schema task types are `feature`, `bug`,
+`chore`, `analysis`, and `spike`; generic input type `task` is accepted as an
+alias for the schema default `feature`.
+
+`task-set-status` validates the task and status. Entering `in-progress` sets
+`started_at` if empty. Entering `done` sets `completed_at` if empty. Moving away
+from `done` does not erase `completed_at`. It does not cascade parent statuses or
+write verification rows.
+
+`task-update-title` updates only `title` and `updated_at`. `task-archive` is a
+soft archive only: it sets `archived_at` and never deletes the task row.
+
 List, show, and search memories without mutating data:
 
 ```bash
@@ -126,14 +151,19 @@ plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-en
 - Writes are limited to `PROJECT_DIR/.taskmanager/` for `init`.
 - `status`, `next`, `show`, `memory-list`, `memory-show`, `memory-search`, and
   `export-json` are read-only.
+- `task-add`, `task-set-status`, `task-update-title`, and `task-archive` write
+  only to `PROJECT_DIR/.taskmanager/taskmanager.db`.
 - `memory-add` and `memory-deprecate` write only to
   `PROJECT_DIR/.taskmanager/taskmanager.db`.
 - `run-sql-tests` delegates to the copied test scripts, which use disposable
   `mktemp` directories.
 - The wrapper does not implement upstream TaskManager `plan`, `run`, `verify`,
-  `update`, full `memory`, or `research` command behavior.
+  broad `update`, full `memory`, or `research` command behavior.
 - The `show` command is visibility only; it does not execute tasks, update
   status, write verification rows, write logs, or claim upstream `show` parity.
+- The task commands do not plan tasks from PRDs, execute tasks, verify tasks,
+  cascade parent status, manage dependencies/tags/milestones, or implement full
+  upstream `update` parity.
 - The memory commands do not run research, auto-classify, update, supersede, or
   reconcile memory conflicts.
 - Full upstream TaskManager runtime parity is not claimed.
