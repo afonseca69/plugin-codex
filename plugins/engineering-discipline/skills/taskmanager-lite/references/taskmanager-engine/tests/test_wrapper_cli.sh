@@ -101,7 +101,114 @@ assert_contains "$HELP_OUTPUT" "memory-list PROJECT_DIR" "help documents memory-
 assert_contains "$HELP_OUTPUT" "memory-add PROJECT_DIR" "help documents memory-add"
 assert_contains "$HELP_OUTPUT" "run-sql-tests" "help documents run-sql-tests"
 assert_contains "$HELP_OUTPUT" "manual" "help includes manual safety note"
+assert_contains "$HELP_OUTPUT" "plan-validate PROJECT_DIR PLAN_JSON" "help documents plan-validate"
+assert_contains "$HELP_OUTPUT" "plan-preview PROJECT_DIR PLAN_JSON" "help documents plan-preview"
+assert_contains "$HELP_OUTPUT" "plan-apply PROJECT_DIR PLAN_JSON" "help documents plan-apply"
 echo ""
+
+PLAN_VALID_JSON="$WORK_DIR/plan-valid.json"
+PLAN_INVALID_JSON="$WORK_DIR/plan-invalid.json"
+PLAN_EMPTY_TASKS_JSON="$WORK_DIR/plan-empty-tasks.json"
+PLAN_MISSING_TASKS_JSON="$WORK_DIR/plan-missing-tasks.json"
+
+cat > "$PLAN_INVALID_JSON" <<'PLAN_JSON'
+{
+  "payload_version": "1",
+  "review_status": "reviewed",
+  "tasks": [
+PLAN_JSON
+
+cat > "$PLAN_EMPTY_TASKS_JSON" <<'PLAN_JSON'
+{
+  "payload_version": "1",
+  "review_status": "reviewed",
+  "plan_analyses": {
+    "prd_source": "prompt:phase-5h-tests",
+    "scope_in": "manual plan import",
+    "scope_out": "runtime validation tests",
+    "acceptance_criteria": [
+      "plan payload is previewed and applied only after review"
+    ]
+  },
+  "tasks": []
+}
+PLAN_JSON
+
+cat > "$PLAN_MISSING_TASKS_JSON" <<'PLAN_JSON'
+{
+  "payload_version": "1",
+  "review_status": "reviewed",
+  "plan_analyses": {
+    "prd_source": "prompt:phase-5h-tests",
+    "scope_in": "manual plan import",
+    "scope_out": "runtime validation tests",
+    "acceptance_criteria": [
+      "plan payload includes at least one task"
+    ]
+  },
+  "milestones": [
+    {
+      "id": "MS-PLAN-001",
+      "title": "Phase 5H milestone",
+      "description": "Plan preview and apply checks.",
+      "status": "planned",
+      "phase_order": 1,
+      "acceptance_criteria": ["milestone recorded"]
+    }
+  ]
+}
+PLAN_JSON
+
+cat > "$PLAN_VALID_JSON" <<'PLAN_JSON'
+{
+  "payload_version": "1",
+  "review_status": "reviewed",
+  "plan_analyses": {
+    "prd_source": "prompt:phase-5h-tests",
+    "scope_in": "manual plan import",
+    "scope_out": "runtime validation tests",
+    "acceptance_criteria": [
+      "plan analytics and milestones are represented"
+    ]
+  },
+  "milestones": [
+    {
+      "id": "MS-PLAN-001",
+      "title": "Phase 5H milestone",
+      "description": "Plan preview and apply checks.",
+      "status": "planned",
+      "phase_order": 1,
+      "acceptance_criteria": ["milestone recorded"]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T-PLAN-001",
+      "title": "Capture plan payload",
+      "description": "Persist the reviewed plan into TaskManager.",
+      "type": "analysis",
+      "status": "planned",
+      "priority": "medium",
+      "milestone_id": "MS-PLAN-001",
+      "dependencies": [],
+      "dependency_types": {},
+      "acceptance_criteria": ["task persisted"]
+    }
+  ],
+  "memories": [
+    {
+      "kind": "decision",
+      "title": "Reviewed plan import",
+      "why_important": "Keep reviewed planning decisions durable.",
+      "body": "This memory is persisted only when plan-apply is used.",
+      "source_type": "user",
+      "source_name": "taskmanager-engine-plan-test",
+      "importance": 4,
+      "confidence": 0.93
+    }
+  ]
+}
+PLAN_JSON
 
 echo "--- Command: status before init ---"
 if STATUS_ERR=$("$WRAPPER" status "$UNINITIALIZED" 2>&1 >/dev/null); then
@@ -137,6 +244,135 @@ fi
 echo ""
 
 DB="$PROJECT/.taskmanager/taskmanager.db"
+PLAN_PROJECT="$WORK_DIR/plan project with spaces"
+PLAN_INIT_OUTPUT=$("$WRAPPER" init "$PLAN_PROJECT")
+assert_contains "$PLAN_INIT_OUTPUT" "Initialized TaskManager engine" "plan test project init reports success"
+PLAN_DB="$PLAN_PROJECT/.taskmanager/taskmanager.db"
+
+echo "--- Command: plan-validate ---"
+if PLAN_VALIDATE_USAGE_ERR=$("$WRAPPER" plan-validate 2>&1 >/dev/null); then
+    fail "plan-validate requires PROJECT_DIR and PLAN_JSON"
+else
+    assert_contains "$PLAN_VALIDATE_USAGE_ERR" "plan-validate requires PROJECT_DIR PLAN_JSON" "plan-validate usage requires both arguments"
+fi
+
+if PLAN_VALIDATE_INVALID_ERR=$("$WRAPPER" plan-validate "$PLAN_PROJECT" "$PLAN_INVALID_JSON" 2>&1 >/dev/null); then
+    fail "plan-validate rejects invalid JSON payload"
+else
+    assert_contains "$PLAN_VALIDATE_INVALID_ERR" "invalid JSON" "plan-validate rejects invalid JSON with clear error"
+fi
+
+if PLAN_VALIDATE_EMPTY_ERR=$("$WRAPPER" plan-validate "$PLAN_PROJECT" "$PLAN_EMPTY_TASKS_JSON" 2>&1 >/dev/null); then
+    fail "plan-validate rejects empty task list"
+else
+    assert_contains "$PLAN_VALIDATE_EMPTY_ERR" "tasks" "plan-validate rejects missing/empty task list"
+    assert_contains "$PLAN_VALIDATE_EMPTY_ERR" "task list" "plan-validate rejects empty task list clearly"
+fi
+
+if PLAN_VALIDATE_MISSING_TASKS_ERR=$("$WRAPPER" plan-validate "$PLAN_PROJECT" "$PLAN_MISSING_TASKS_JSON" 2>&1 >/dev/null); then
+    fail "plan-validate rejects missing task list"
+else
+    assert_contains "$PLAN_VALIDATE_MISSING_TASKS_ERR" "tasks" "plan-validate rejects missing task list"
+    assert_contains "$PLAN_VALIDATE_MISSING_TASKS_ERR" "task list" "plan-validate rejects missing task list clearly"
+fi
+
+DB_SHA_PLAN_VALIDATE_BEFORE=$(sha256sum "$PLAN_DB")
+if PLAN_VALIDATE_VALID_OUTPUT=$("$WRAPPER" plan-validate "$PLAN_PROJECT" "$PLAN_VALID_JSON" 2>/dev/null); then
+    pass "plan-validate accepts reviewed payload"
+    if [[ -n "$PLAN_VALIDATE_VALID_OUTPUT" ]]; then
+        pass "plan-validate prints validation output"
+    else
+        fail "plan-validate prints validation output"
+    fi
+else
+    fail "plan-validate accepts reviewed payload"
+fi
+DB_SHA_PLAN_VALIDATE_AFTER=$(sha256sum "$PLAN_DB")
+assert_eq "$DB_SHA_PLAN_VALIDATE_AFTER" "$DB_SHA_PLAN_VALIDATE_BEFORE" "plan-validate performs no writes"
+echo ""
+
+echo "--- Command: plan-preview ---"
+if PLAN_PREVIEW_USAGE_ERR=$("$WRAPPER" plan-preview 2>&1 >/dev/null); then
+    fail "plan-preview requires PROJECT_DIR and PLAN_JSON"
+else
+    assert_contains "$PLAN_PREVIEW_USAGE_ERR" "plan-preview requires PROJECT_DIR PLAN_JSON" "plan-preview usage requires both arguments"
+fi
+DB_SHA_PLAN_PREVIEW_BEFORE=$(sha256sum "$PLAN_DB")
+if PLAN_PREVIEW_OUTPUT=$("$WRAPPER" plan-preview "$PLAN_PROJECT" "$PLAN_VALID_JSON" 2>/dev/null); then
+    assert_contains "$PLAN_PREVIEW_OUTPUT" "MS-PLAN-001" "plan-preview prints milestone details"
+    assert_contains "$PLAN_PREVIEW_OUTPUT" "T-PLAN-001" "plan-preview prints task details"
+else
+    fail "plan-preview prints plan/milestone/task details"
+fi
+DB_SHA_PLAN_PREVIEW_AFTER=$(sha256sum "$PLAN_DB")
+assert_eq "$DB_SHA_PLAN_PREVIEW_AFTER" "$DB_SHA_PLAN_PREVIEW_BEFORE" "plan-preview performs no writes"
+echo ""
+
+echo "--- Command: plan-apply ---"
+PLAN_ANALYSES_COUNT_BEFORE=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM plan_analyses;")
+MILESTONE_COUNT_BEFORE=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM milestones;")
+TASK_COUNT_BEFORE=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM tasks;")
+MEMORY_COUNT_BEFORE=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM memories;")
+STATE_CURRENT_TASK_BEFORE=$(sqlite3 "$PLAN_DB" "SELECT COALESCE(current_task_id, '') FROM state WHERE id = 1;")
+VERIFICATION_COUNT_BEFORE=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM verifications;")
+REGRESSION_COUNT_BEFORE=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM regression_checks;")
+
+if PLAN_APPLY_USAGE_ERR=$("$WRAPPER" plan-apply 2>&1 >/dev/null); then
+    fail "plan-apply requires PROJECT_DIR and PLAN_JSON"
+else
+    assert_contains "$PLAN_APPLY_USAGE_ERR" "plan-apply requires PROJECT_DIR PLAN_JSON" "plan-apply usage requires both arguments"
+fi
+
+if PLAN_APPLY_OUTPUT=$("$WRAPPER" plan-apply "$PLAN_PROJECT" "$PLAN_VALID_JSON" 2>/dev/null); then
+    PLAN_ANALYSES_COUNT_AFTER=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM plan_analyses;")
+    MILESTONE_COUNT_AFTER=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM milestones;")
+    TASK_COUNT_AFTER=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM tasks;")
+    MEMORY_COUNT_AFTER=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM memories;")
+    STATE_CURRENT_TASK_AFTER=$(sqlite3 "$PLAN_DB" "SELECT COALESCE(current_task_id, '') FROM state WHERE id = 1;")
+    VERIFICATION_COUNT_AFTER=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM verifications;")
+    REGRESSION_COUNT_AFTER=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM regression_checks;")
+
+    assert_contains "$PLAN_APPLY_OUTPUT" "inserted" "plan-apply reports inserted counts"
+    assert_eq "$PLAN_ANALYSES_COUNT_AFTER" "$((PLAN_ANALYSES_COUNT_BEFORE + 1))" "plan-apply inserts exactly one plan_analyses row"
+    assert_eq "$MILESTONE_COUNT_AFTER" "$((MILESTONE_COUNT_BEFORE + 1))" "plan-apply inserts exactly one milestone row"
+    assert_eq "$TASK_COUNT_AFTER" "$((TASK_COUNT_BEFORE + 1))" "plan-apply inserts exactly one task row"
+    assert_eq "$MEMORY_COUNT_AFTER" "$((MEMORY_COUNT_BEFORE + 1))" "plan-apply inserts optional memory row"
+    assert_eq "$STATE_CURRENT_TASK_AFTER" "$STATE_CURRENT_TASK_BEFORE" "plan-apply keeps state.current_task_id unchanged"
+    assert_eq "$VERIFICATION_COUNT_AFTER" "$VERIFICATION_COUNT_BEFORE" "plan-apply does not write verifications"
+    assert_eq "$REGRESSION_COUNT_AFTER" "$REGRESSION_COUNT_BEFORE" "plan-apply does not write regression checks"
+else
+    fail "plan-apply inserts one plan_analyses, one milestone, one task, and one optional memory in one transaction"
+fi
+
+PLAN_ANALYSES_COUNT_DUP_PRE=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM plan_analyses;")
+MILESTONE_COUNT_DUP_PRE=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM milestones;")
+TASK_COUNT_DUP_PRE=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM tasks;")
+MEMORY_COUNT_DUP_PRE=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM memories;")
+STATE_CURRENT_TASK_DUP_PRE=$(sqlite3 "$PLAN_DB" "SELECT COALESCE(current_task_id, '') FROM state WHERE id = 1;")
+VERIFICATION_COUNT_DUP_PRE=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM verifications;")
+REGRESSION_COUNT_DUP_PRE=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM regression_checks;")
+
+if PLAN_APPLY_DUP_ERR=$("$WRAPPER" plan-apply "$PLAN_PROJECT" "$PLAN_VALID_JSON" 2>&1 >/dev/null); then
+    fail "plan-apply rejects duplicate/colliding plan payload"
+else
+    assert_contains "$PLAN_APPLY_DUP_ERR" "duplicate" "plan-apply rejects duplicate/colliding plan payload"
+fi
+
+PLAN_ANALYSES_COUNT_DUP_POST=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM plan_analyses;")
+MILESTONE_COUNT_DUP_POST=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM milestones;")
+TASK_COUNT_DUP_POST=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM tasks;")
+MEMORY_COUNT_DUP_POST=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM memories;")
+STATE_CURRENT_TASK_DUP_POST=$(sqlite3 "$PLAN_DB" "SELECT COALESCE(current_task_id, '') FROM state WHERE id = 1;")
+VERIFICATION_COUNT_DUP_POST=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM verifications;")
+REGRESSION_COUNT_DUP_POST=$(sqlite3 "$PLAN_DB" "SELECT COUNT(*) FROM regression_checks;")
+assert_eq "$PLAN_ANALYSES_COUNT_DUP_POST" "$PLAN_ANALYSES_COUNT_DUP_PRE" "plan-apply duplicate collision rejects without plan_analyses partial writes"
+assert_eq "$MILESTONE_COUNT_DUP_POST" "$MILESTONE_COUNT_DUP_PRE" "plan-apply duplicate collision rejects without milestone partial writes"
+assert_eq "$TASK_COUNT_DUP_POST" "$TASK_COUNT_DUP_PRE" "plan-apply duplicate collision rejects without task partial writes"
+assert_eq "$MEMORY_COUNT_DUP_POST" "$MEMORY_COUNT_DUP_PRE" "plan-apply duplicate collision rejects without memory partial writes"
+assert_eq "$STATE_CURRENT_TASK_DUP_POST" "$STATE_CURRENT_TASK_DUP_PRE" "plan-apply duplicate collision keeps state.current_task_id unchanged"
+assert_eq "$VERIFICATION_COUNT_DUP_POST" "$VERIFICATION_COUNT_DUP_PRE" "plan-apply duplicate collision does not mutate verifications"
+assert_eq "$REGRESSION_COUNT_DUP_POST" "$REGRESSION_COUNT_DUP_PRE" "plan-apply duplicate collision does not mutate regression checks"
+echo ""
 
 echo "--- Command: status ---"
 STATUS_OUTPUT=$("$WRAPPER" status "$PROJECT")

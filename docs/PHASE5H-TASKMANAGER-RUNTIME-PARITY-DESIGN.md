@@ -2,10 +2,11 @@
 
 ## Status
 
-Phase 5H is a design-only slice for future Codex-native TaskManager runtime
-parity. It does not change plugin runtime behavior, edit wrapper scripts, add
-skills, change hooks, enable hooks, bump the plugin version, or implement
-additional TaskManager commands.
+Phase 5H began as a design-only slice for future Codex-native TaskManager
+runtime parity. Phase 5H-1 published the future manual `plan` command contract
+without runtime behavior. Phase 5H-2 implements the narrow manual
+`plan-validate`, `plan-preview`, and `plan-apply` wrapper command family for
+reviewed JSON payloads.
 
 The published baseline remains plugin version `0.1.13` with 29 skills. Default
 hooks remain advisory-only. Optional extended advisory hooks and optional
@@ -14,6 +15,12 @@ enforcing hooks remain opt-in and outside the plugin hook entry point.
 Phase 5H-1 extends this design with a future manual `plan` command contract.
 It is still design-only. It does not implement the runtime `plan` surface or
 any wrapper behavior.
+
+Phase 5H-2 implements only the reviewed-payload manual plan wrapper surface. It
+does not add a first-class plan skill, parse PRDs, ask follow-up questions,
+execute tasks, write verification or regression rows, change current task state,
+run research, implement done gates, enable hooks, change plugin version, or
+claim full upstream `plan` parity.
 
 ## Relationship To Phase 5D
 
@@ -29,8 +36,10 @@ artifact flow, tests, and safety gates before any implementation can begin.
 
 ## Goals
 
-- Define a future Codex-native shape for `plan`, `run`, and `verify` without
-  implementing those commands.
+- Define a Codex-native shape for `plan`, `run`, and `verify` without claiming
+  full upstream parity.
+- Implement only reviewed-payload manual `plan` validation, preview, and apply
+  in Phase 5H-2.
 - Keep TaskManager persistence explicit, manual, and bounded to
   `PROJECT_DIR/.taskmanager/`.
 - Preserve the current hook posture: default advisory hooks only, with extended
@@ -42,10 +51,10 @@ artifact flow, tests, and safety gates before any implementation can begin.
 
 ## Non-goals
 
-- No implementation of `plan`, `run`, `verify`, `research`, done gates, broad
-  `update`, or autonomous execution.
+- No PRD parsing, plan generation, `run`, `verify`, `research`, done gates,
+  broad `update`, or autonomous execution.
 - No runtime script, wrapper, hook, migration, manifest, or executable-code
-  changes.
+  changes beyond the explicit Phase 5H-2 manual `plan-*` wrapper commands.
 - No Codex command registration.
 - No background jobs, schedulers, agents, subagents, or hidden services.
 - No automatic TaskManager execution or hook-driven TaskManager behavior.
@@ -58,7 +67,8 @@ artifact flow, tests, and safety gates before any implementation can begin.
 | Passive visibility | Implemented by copied schema, query, migration, and test artifacts plus read-only `show` modes. | Reads initialized engine state; does not execute tasks or mutate source files. |
 | Manual task operations | Implemented in Phase 5G for add, status, title, and soft archive. | Mutates only explicit task rows in `PROJECT_DIR/.taskmanager/taskmanager.db`. |
 | Manual memory operations | Implemented in Phase 5F for list, show, search, add, and deprecate. | Mutates only explicit memory rows for add/deprecate; no research workflow. |
-| Future plan generation | Not implemented. | Should produce a reviewable structured payload before any database import. |
+| Manual plan payload validation/preview/apply | Implemented in Phase 5H-2 for reviewed JSON payloads. | `plan-validate` and `plan-preview` are read-only; `plan-apply` inserts plan analyses, milestones, tasks, and optional memories only. It does not parse PRDs or execute tasks. |
+| Future plan generation | Not implemented. | Codex or an operator should produce a reviewable structured payload before any database import. |
 | Future run execution | Not implemented. | Should keep repository edits as explicit Codex work, separate from deterministic DB updates. |
 | Future verify/reporting | Not implemented. | Should record evidence and produce reports before any status gate relies on it. |
 | Future done gates | Deferred and not implemented. | Any gate must be explicit, tested, override-aware, and not hook-enabled by default. |
@@ -80,7 +90,8 @@ only when the user explicitly asks to run or implement a task.
 
 ## Future Command Surfaces
 
-These names are design placeholders, not implemented commands.
+These names are design placeholders except for the Phase 5H-2 manual `plan-*`
+wrapper commands explicitly called out below.
 
 ### Future `plan`
 
@@ -295,6 +306,34 @@ Phase 5H-1 does not implement runtime `plan`, `run`, `verify`, `research`, done
 gates, auto-run, background jobs, schedulers, default enforcing hooks,
 autonomous agents, subagents, or full parity with upstream `mwguerra/plugins`.
 
+## Phase 5H-2 Manual `plan` Implementation
+
+Phase 5H-2 implements the manual command family defined by the Phase 5H-1
+contract:
+
+```bash
+taskmanager-engine.sh plan-validate PROJECT_DIR PLAN_JSON
+taskmanager-engine.sh plan-preview PROJECT_DIR PLAN_JSON
+taskmanager-engine.sh plan-apply PROJECT_DIR PLAN_JSON
+```
+
+The implementation is intentionally limited:
+
+- `PLAN_JSON` must use `payload_version: 1` and `review_status: "reviewed"`;
+- the payload may contain one `plan_analyses` object, zero or more milestones,
+  one or more tasks, and optional memories;
+- `plan-validate` and `plan-preview` open the initialized database read-only and
+  perform no writes;
+- `plan-apply` inserts accepted rows in a single SQLite transaction;
+- collisions with existing persisted IDs fail before writes;
+- task dependencies are stored in `tasks.dependencies` and
+  `tasks.dependency_types`;
+- `state.current_task_id`, `verifications`, and `regression_checks` are not
+  changed.
+
+See [`docs/PHASE5H-2-TASKMANAGER-PLAN.md`](PHASE5H-2-TASKMANAGER-PLAN.md) for
+the implemented command details and verification evidence.
+
 ### Future `run`
 
 The safest future `run` shape is context-first:
@@ -370,18 +409,18 @@ correctness.
 Each later slice should update documentation and verification notes only for
 behavior actually implemented and tested.
 
-1. Phase 5I: plan validator and preview implementation.
+1. Phase 5I: first-class plan operator skill and broader payload fixtures.
 
-   Implement the Phase 5H-1 payload validation and read-only preview surfaces.
-   Add tests for invalid JSON, duplicate task IDs, invalid dependencies,
-   invalid enum values, schema-version mismatch, and preview read-only
-   assertions. No PRD parsing or DB mutation is required in this slice.
+   Add a `taskmanager-engine-plan` skill or equivalent operator guide for the
+   Phase 5H-2 wrapper commands, plus focused fixture coverage for invalid
+   dependencies, enum values, schema-version mismatch, and collision reporting.
+   No PRD parsing or task execution is required in this slice.
 
-2. Phase 5J: transactional plan apply implementation.
+2. Phase 5J: plan payload generation guidance.
 
-   Add explicit apply for a reviewed payload. Prove atomic rollback and
-   before/after database state for milestones, tasks, task dependency JSON,
-   optional memories, and plan analyses.
+   Document how Codex operator skills should produce reviewed `PLAN_JSON`
+   payloads from PRDs or prompts before invoking the wrapper. Keep payload
+   generation outside the wrapper.
 
 3. Phase 5K: verification recording and reporting.
 
@@ -412,33 +451,46 @@ behavior actually implemented and tested.
 - Background jobs or schedulers.
 - Hooks enabled by default beyond the current advisory hook entry point.
 - Autonomous agents or subagents.
-- Complete `plan`, `run`, `verify`, or `research` runtime behavior.
+- Complete upstream `plan`, `run`, `verify`, or `research` runtime behavior.
+- PRD parsing or plan generation inside the wrapper.
 - Broad upstream `update` parity.
 - Enforcing done gates.
 - Web research without explicit user intent.
 - Codex command registration for the upstream TaskManager command set.
 
-## Acceptance Criteria For This Design-only Slice
+## Acceptance Criteria For Phase 5H-2
 
-- Changes are docs-only.
-- No runtime behavior changes.
+- `plan-validate`, `plan-preview`, and `plan-apply` are explicit manual wrapper
+  commands.
+- `plan-validate` and `plan-preview` are proven read-only.
+- `plan-apply` is transactional and bounded to
+  `PROJECT_DIR/.taskmanager/taskmanager.db`.
+- `plan-apply` writes only `plan_analyses`, `milestones`, `tasks`, and optional
+  `memories`.
+- Invalid payloads and duplicate/colliding IDs fail before partial writes.
 - No hook behavior changes.
 - No plugin version bump.
 - No skill count change.
-- No wrapper, migration, manifest, hook, or executable-code edits.
-- No implementation of `plan`, `run`, `verify`, `research`, done gates, auto-run,
-  background work, schedulers, agents, or subagents.
-- No push, tag, or release is created as part of this slice.
+- No migration, manifest, hook, or skill edits.
+- No `run`, `verify`, `research`, done gates, auto-run, background work,
+  schedulers, agents, or subagents.
+- No full upstream `plan` or TaskManager runtime parity claim.
 
-## Verification For This Slice
+## Verification For Phase 5H-2
 
-Design-only verification is limited to repository hygiene:
+Implementation verification includes repository hygiene and command-specific
+tests:
 
 ```bash
-git diff --check
-git status --short
-git diff --stat
+bash -n plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh
+bash -n plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/tests/test_wrapper_cli.sh
+cd plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine
+bash tests/test_wrapper_cli.sh
 ```
 
-Future implementation slices need command-specific tests before any new runtime
-parity claim.
+Latest local Phase 5H-2 result: `test_wrapper_cli.sh` passed `152/0` while also
+delegating to `test_sql_queries.sh` (`285/0`) and `test_lifecycle_e2e.sh`
+(`30/0`) through `run-sql-tests`.
+
+Future implementation slices need their own command-specific tests before any
+new runtime parity claim.

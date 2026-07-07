@@ -87,6 +87,41 @@ MEMORY_ID=$("$ENGINE" memory-add "$TMP" decision "Test memory" "This is a test m
 "$ENGINE" memory-show "$TMP" "$MEMORY_ID"
 "$ENGINE" memory-search "$TMP" test
 "$ENGINE" memory-deprecate "$TMP" "$MEMORY_ID" "smoke test"
+cat > "$TMP/plan.json" <<'JSON'
+{
+  "payload_version": "1",
+  "review_status": "reviewed",
+  "plan_analyses": {
+    "prd_source": "prompt:smoke",
+    "scope_in": "manual plan smoke",
+    "scope_out": "task execution",
+    "acceptance_criteria": ["plan payload is stored"]
+  },
+  "milestones": [
+    {
+      "id": "MS-SMOKE-001",
+      "title": "Smoke milestone",
+      "status": "planned",
+      "phase_order": 1,
+      "acceptance_criteria": ["milestone stored"]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T-SMOKE-PLAN-001",
+      "title": "Smoke planned task",
+      "type": "analysis",
+      "status": "planned",
+      "priority": "medium",
+      "milestone_id": "MS-SMOKE-001",
+      "acceptance_criteria": ["task stored"]
+    }
+  ]
+}
+JSON
+"$ENGINE" plan-validate "$TMP" "$TMP/plan.json"
+"$ENGINE" plan-preview "$TMP" "$TMP/plan.json"
+"$ENGINE" plan-apply "$TMP" "$TMP/plan.json"
 "$ENGINE" show "$TMP" overview
 "$ENGINE" show "$TMP" tasks
 "$ENGINE" show "$TMP" milestones
@@ -101,14 +136,15 @@ MEMORY_ID=$("$ENGINE" memory-add "$TMP" decision "Test memory" "This is a test m
 rm -rf "$TMP"
 ```
 
-Latest local result for plugin `0.1.13`: `test_sql_queries.sh` passed 285/0,
-`test_lifecycle_e2e.sh` passed 30/0, and `test_wrapper_cli.sh` passed 118/0.
+Latest local result after Phase 5H-2: `test_sql_queries.sh` passed 285/0,
+`test_lifecycle_e2e.sh` passed 30/0, and `test_wrapper_cli.sh` passed 152/0.
 
 Passing these suites validates the standalone copied SQLite artifacts and the limited manual
 wrapper only. Phase 5G adds first-class Codex skill entry points and explicit manual
-task-add/status/title/archive wrapper commands for initialized engine state; it does not claim
-full TaskManager task/runtime parity. Full parity still requires broader Codex command/runtime
-implementation and tests.
+task-add/status/title/archive wrapper commands for initialized engine state. Phase 5H-2 adds
+manual reviewed-payload plan validate/preview/apply wrapper commands without adding a skill. These
+do not claim full TaskManager plan/task/runtime parity. Full parity still requires broader Codex
+command/runtime implementation and tests.
 
 ## Extended advisory hooks
 

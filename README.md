@@ -108,15 +108,21 @@ The TaskManager engine artifacts live at
 include upstream schema/config, migrations, query catalog, copied SQL test assets, and a manual
 wrapper at `bin/taskmanager-engine.sh`. The wrapper supports explicit `init`, `status`, `next`,
 `show`, `task-add`, `task-set-status`, `task-update-title`, `task-archive`, `memory-list`,
-`memory-show`, `memory-search`, `memory-add`, `memory-deprecate`, `export-json`, and
-`run-sql-tests` commands, but it is not registered as a Codex command and is not a full
+`memory-show`, `memory-search`, `memory-add`, `memory-deprecate`, `plan-validate`,
+`plan-preview`, `plan-apply`, `export-json`, and `run-sql-tests` commands, but it is not
+registered as a Codex command and is not a full
 TaskManager runtime. The `show` command is read-only visibility for initialized engine state; it
 does not execute tasks or update TaskManager data. The task commands are manual and bounded to the
 initialized SQLite database; `task-add`, `task-set-status`, `task-update-title`, and
 `task-archive` mutate only `PROJECT_DIR/.taskmanager/taskmanager.db` and do not cascade parent
 statuses or write verification rows. The memory commands are manual and bounded to the initialized
 SQLite database; only `memory-add` and `memory-deprecate` mutate
-`PROJECT_DIR/.taskmanager/taskmanager.db`. The `taskmanager-engine-*` skills are first-class Codex
+`PROJECT_DIR/.taskmanager/taskmanager.db`. The plan commands are manual and bounded to reviewed
+JSON payloads for initialized SQLite state: `plan-validate` and `plan-preview` are read-only, and
+`plan-apply` inserts only plan analyses, milestones, tasks, and optional memories in one
+transaction. They do not parse PRDs, execute tasks, write verification or regression rows, change
+current task state, run research, or enable hooks. The `taskmanager-engine-*` skills are
+first-class Codex
 operator guides for that wrapper; they do not add hidden runtime behavior or full upstream command
 parity.
 Future TaskManager runtime parity is scoped in
@@ -127,9 +133,10 @@ The implemented manual memory Phase 5F slice is recorded in
 [`docs/PHASE5F-TASKMANAGER-MEMORY.md`](docs/PHASE5F-TASKMANAGER-MEMORY.md).
 The implemented manual task Phase 5G slice is recorded in
 [`docs/PHASE5G-TASKMANAGER-TASK-OPERATIONS.md`](docs/PHASE5G-TASKMANAGER-TASK-OPERATIONS.md).
-The design-only Phase 5H refinement for future `plan`, `run`, and `verify`
-runtime parity is recorded in
+The Phase 5H refinement for `plan`, `run`, and `verify` runtime parity is recorded in
 [`docs/PHASE5H-TASKMANAGER-RUNTIME-PARITY-DESIGN.md`](docs/PHASE5H-TASKMANAGER-RUNTIME-PARITY-DESIGN.md).
+The implemented Phase 5H-2 manual plan command slice is recorded in
+[`docs/PHASE5H-2-TASKMANAGER-PLAN.md`](docs/PHASE5H-2-TASKMANAGER-PLAN.md).
 
 ## Hooks policy
 
@@ -183,12 +190,17 @@ Version `0.1.13` adds safe manual TaskManager task operations through explicit
   including `init`, `status`, `next`, `show`, task operations, memory operations, `export-json`, and
   wrapper-driven `run-sql-tests`.
 
+Post-`0.1.13` main adds Phase 5H-2 manual plan payload commands without changing plugin version,
+skill count, or hook posture. Local validation for that slice updated `test_wrapper_cli.sh` to
+`152/0`, while the copied SQL suite remained `285/0` and lifecycle suite remained `30/0`.
+
 Hook behavior is unchanged from `0.1.9`: default hooks remain advisory-only, optional extended
 advisory hooks remain opt-in, and strict hooks remain opt-in. The TaskManager wrapper is manual
 only. The `taskmanager-engine-*` skills describe manual wrapper usage and do not claim full
 upstream TaskManager runtime parity. `task-add`, `task-set-status`, `task-update-title`,
-`task-archive`, `memory-add`, and `memory-deprecate` are explicit database mutations only; they
-do not implement plan/run/verify/update/research or full upstream task/memory parity. Before
+`task-archive`, `memory-add`, `memory-deprecate`, and `plan-apply` are explicit database
+mutations only; they do not implement run/verify/update/research, PRD parsing, done gates, or full
+upstream task/memory/plan parity. Before
 relying on enforcing hooks globally, still validate
 them inside your target live Codex workflow and review them in `/hooks`.
 

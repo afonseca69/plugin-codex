@@ -32,10 +32,17 @@ and the `taskmanager-engine-task` skill. It remains limited to explicit
 single-row task mutation, does not cascade parent statuses or write verification
 rows, and does not claim full upstream `update` or TaskManager runtime parity.
 
-Post-design update: Phase 5H is a design-only refinement for future `plan`,
-`run`, and `verify` runtime parity. It adds no runtime behavior, skills, hooks,
-version bump, or command implementation. See
+Post-design update: Phase 5H-1 was a design-only refinement for future `plan`,
+`run`, and `verify` runtime parity. It added no runtime behavior, skills,
+hooks, version bump, or command implementation. See
 [`docs/PHASE5H-TASKMANAGER-RUNTIME-PARITY-DESIGN.md`](PHASE5H-TASKMANAGER-RUNTIME-PARITY-DESIGN.md).
+
+Post-design update: Phase 5H-2 implements the narrow manual `plan-validate`,
+`plan-preview`, and `plan-apply` wrapper commands for reviewed JSON payloads. It
+does not parse PRDs, execute tasks, write verification or regression rows, add a
+first-class skill, change hooks, bump the plugin version, or claim full upstream
+`plan` parity. See
+[`docs/PHASE5H-2-TASKMANAGER-PLAN.md`](PHASE5H-2-TASKMANAGER-PLAN.md).
 
 ## Context
 
@@ -139,7 +146,7 @@ The upstream TaskManager command set is:
 | Upstream command | Upstream purpose | Mutation profile | Current Codex support |
 |---|---|---|---|
 | `init` | Initialize `.taskmanager/` with schema, config, logs, and PRD template; detect old schema versions. | Writes `.taskmanager/`. | Partially supported by manual `init`; current wrapper creates DB/config/logs and refuses existing DB, but does not implement the whole upstream init UX. |
-| `plan` | Parse PRD file, folder, or prompt; analyze risks; create plan analyses, memories, milestones, tasks, dependencies, and optional expansions. | Writes many DB tables and logs. | Not implemented. `taskmanager-lite` is database-free planning guidance only. |
+| `plan` | Parse PRD file, folder, or prompt; analyze risks; create plan analyses, memories, milestones, tasks, dependencies, and optional expansions. | Writes many DB tables and logs. | Partially supported by Phase 5H-2 manual `plan-validate`, `plan-preview`, and `plan-apply` for reviewed JSON payloads. The wrapper does not parse PRDs, ask questions, generate plans, execute tasks, write logs, or provide full upstream `plan` parity. `taskmanager-lite` remains database-free planning guidance. |
 | `run` | Select or execute tasks, apply memories and deferrals, update statuses, perform work, verify before done, and propagate status. | Mutates DB and may mutate repository files when performing task work. | Not implemented. |
 | `verify` | Verify tasks, milestones, or PRD criteria with captured evidence and adversarial review; record verification rows. | Mutates verification rows and task status. | Not implemented. |
 | `show` | Read dashboard, task details, next tasks, stats, deferrals, milestones, verification, and plan analyses. | Read-only. | Phase 5E implements a limited read-only subset: overview, task list/detail, milestones, memories, deferrals, verifications, and regressions. Full upstream `show` is not implemented. |
@@ -168,6 +175,7 @@ The current manual wrapper safely supports:
 The current wrapper does not safely support:
 
 - planning from PRDs into the DB;
+- first-class Codex skill guidance for manual plan payload import;
 - executing or verifying tasks;
 - broad task updates for tags, dependencies, milestones, deferrals, scope, or done gates;
 - memory update, supersede, conflict reconciliation, or research-backed memory workflows;

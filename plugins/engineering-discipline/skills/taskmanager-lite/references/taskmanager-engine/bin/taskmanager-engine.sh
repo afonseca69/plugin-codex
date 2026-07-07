@@ -57,6 +57,12 @@ Manual commands:
                             Explicitly add one manual memory row.
   memory-deprecate PROJECT_DIR MEMORY_ID REASON
                             Mark one memory deprecated without deleting it.
+  plan-validate PROJECT_DIR PLAN_JSON
+                            Validate a reviewed plan payload without writing.
+  plan-preview PROJECT_DIR PLAN_JSON
+                            Preview reviewed plan artifacts without writing.
+  plan-apply PROJECT_DIR PLAN_JSON
+                            Insert reviewed plan artifacts in one transaction.
   export-json [PROJECT_DIR] Print a JSON export of core tables without mutating data.
   run-sql-tests             Run the copied SQL query and lifecycle test scripts.
   help                      Show this help.
@@ -82,17 +88,24 @@ Safety notes:
   - Task commands do not cascade parent statuses, execute work, or write verification rows.
   - memory-add and memory-deprecate mutate only PROJECT_DIR/.taskmanager/taskmanager.db.
   - Memory commands do not auto-classify, research, supersede, or reconcile conflicts.
+  - plan-validate and plan-preview read an explicit PLAN_JSON and do not write.
+  - plan-apply inserts only plan analyses, milestones, tasks, and optional memories.
+  - Plan commands do not execute tasks, write verification rows, change current task state, run research, or enable hooks.
 
 Exit codes:
   0    success
   1    runtime or validation failure
   2    usage error
-  127  missing sqlite3 dependency
+  127  missing sqlite3 or python3 dependency
 USAGE
 }
 
 require_sqlite() {
     command -v sqlite3 >/dev/null 2>&1 || die "sqlite3 is required for TaskManager engine commands." "$EXIT_DEPENDENCY"
+}
+
+require_python3() {
+    command -v python3 >/dev/null 2>&1 || die "python3 is required for TaskManager plan commands." "$EXIT_DEPENDENCY"
 }
 
 require_engine_files() {
@@ -889,6 +902,628 @@ SQL
     printf 'Archived task: %s\n' "$task_id"
 }
 
+plan_payload() {
+    local mode="$1"
+    local db="$2"
+    local payload="$3"
+
+    python3 - "$mode" "$db" "$payload" <<'PY'
+import json
+import re
+import sqlite3
+import sys
+from pathlib import Path
+
+MODE = sys.argv[1]
+DB_PATH = sys.argv[2]
+PAYLOAD_PATH = sys.argv[3]
+
+ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+TASK_STATUSES = {"draft", "planned", "in-progress", "blocked", "paused", "done", "canceled", "duplicate", "needs-review"}
+TASK_TYPES = {"feature", "bug", "chore", "analysis", "spike"}
+PRIORITIES = {"low", "medium", "high", "critical"}
+MILESTONE_STATUSES = {"planned", "active", "completed", "canceled"}
+MEMORY_KINDS = {"constraint", "decision", "bugfix", "workaround", "convention", "architecture", "process", "integration", "anti-pattern", "other"}
+MEMORY_SOURCES = {"user", "agent", "command", "hook", "other"}
+COMPLEXITY_SCALES = {"XS", "S", "M", "L", "XL"}
+MOSCOW_VALUES = {"must", "should", "could", "wont"}
+DEPENDENCY_TYPES = {"hard", "soft"}
+
+
+def fail(message: str, code: int = 1) -> None:
+    print(f"Error: {message}", file=sys.stderr)
+    raise SystemExit(code)
+
+
+def read_payload(path: str) -> dict:
+    try:
+        raw = Path(path).read_text(encoding="utf-8")
+    except OSError as exc:
+        fail(f"cannot read PLAN_JSON: {exc}")
+
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        fail(f"invalid JSON in PLAN_JSON: {exc}")
+
+    if not isinstance(payload, dict):
+        fail("PLAN_JSON root must be an object.")
+    return payload
+
+
+def connect_readonly(db_path: str) -> sqlite3.Connection:
+    return sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+
+
+def connect_writable(db_path: str) -> sqlite3.Connection:
+    conn = sqlite3.connect(db_path)
+    conn.execute("PRAGMA foreign_keys = ON")
+    return conn
+
+
+def table_exists(conn: sqlite3.Connection, table: str) -> bool:
+    return conn.execute(
+        "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?",
+        (table,),
+    ).fetchone()[0] == 1
+
+
+def require_table(conn: sqlite3.Connection, table: str) -> None:
+    if not table_exists(conn, table):
+        fail(f"{table} table does not exist in {DB_PATH}.")
+
+
+def schema_version(conn: sqlite3.Connection) -> str:
+    require_table(conn, "schema_version")
+    row = conn.execute(
+        "SELECT version FROM schema_version ORDER BY applied_at DESC LIMIT 1"
+    ).fetchone()
+    return row[0] if row else "unknown"
+
+
+def validate_id(value: str, label: str) -> str:
+    if not isinstance(value, str) or not value:
+        fail(f"{label} must be a non-empty string.")
+    if not ID_RE.match(value):
+        fail(f"{label} contains unsupported characters.")
+    return value
+
+
+def require_text(value, label: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        fail(f"{label} must be a non-empty string.")
+    return value
+
+
+def json_text(value, label: str, default):
+    if value is None:
+        value = default
+    if isinstance(value, str):
+        try:
+            json.loads(value)
+        except json.JSONDecodeError as exc:
+            fail(f"{label} must be valid JSON when provided as a string: {exc}")
+        return value
+    if isinstance(value, (list, dict)):
+        return json.dumps(value, sort_keys=True, separators=(",", ":"))
+    fail(f"{label} must be a JSON array or object.")
+
+
+def optional_text(value, label: str):
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (list, dict)):
+        return json.dumps(value, sort_keys=True, separators=(",", ":"))
+    fail(f"{label} must be text or JSON-compatible data.")
+
+
+def optional_int(value, label: str, min_value=None, max_value=None):
+    if value is None:
+        return None
+    if not isinstance(value, int) or isinstance(value, bool):
+        fail(f"{label} must be an integer.")
+    if min_value is not None and value < min_value:
+        fail(f"{label} must be at least {min_value}.")
+    if max_value is not None and value > max_value:
+        fail(f"{label} must be {max_value} or less.")
+    return value
+
+
+def optional_float(value, label: str, default=None, min_value=None, max_value=None):
+    if value is None:
+        value = default
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        fail(f"{label} must be a number.")
+    value = float(value)
+    if min_value is not None and value < min_value:
+        fail(f"{label} must be at least {min_value}.")
+    if max_value is not None and value > max_value:
+        fail(f"{label} must be {max_value} or less.")
+    return value
+
+
+def next_prefixed_id(conn: sqlite3.Connection, table: str, prefix: str) -> str:
+    start = len(prefix) + 1
+    row = conn.execute(
+        f"SELECT COALESCE(MAX(CASE WHEN id GLOB ? THEN CAST(SUBSTR(id, ?) AS INTEGER) END), 0) FROM {table}",
+        (f"{prefix}[0-9]*", start),
+    ).fetchone()
+    return f"{prefix}{(row[0] or 0) + 1:03d}"
+
+
+def ensure_unique(items, label: str) -> None:
+    seen = set()
+    duplicates = []
+    for item in items:
+        if item in seen:
+            duplicates.append(item)
+        seen.add(item)
+    if duplicates:
+        fail(f"duplicate {label}: {', '.join(sorted(set(duplicates)))}")
+
+
+def existing_ids(conn: sqlite3.Connection, table: str, ids) -> list[str]:
+    values = sorted(set(ids))
+    if not values:
+        return []
+    placeholders = ",".join("?" for _ in values)
+    rows = conn.execute(
+        f"SELECT id FROM {table} WHERE id IN ({placeholders}) ORDER BY id",
+        values,
+    ).fetchall()
+    return [row[0] for row in rows]
+
+
+def active_task_ids(conn: sqlite3.Connection, ids) -> set[str]:
+    values = sorted(set(ids))
+    if not values:
+        return set()
+    placeholders = ",".join("?" for _ in values)
+    rows = conn.execute(
+        f"""
+        SELECT id
+        FROM tasks
+        WHERE id IN ({placeholders})
+          AND archived_at IS NULL
+          AND status NOT IN ('canceled', 'duplicate')
+        """,
+        values,
+    ).fetchall()
+    return {row[0] for row in rows}
+
+
+def normalize_payload(conn: sqlite3.Connection, payload: dict) -> dict:
+    for table in ("plan_analyses", "milestones", "tasks", "memories", "state", "verifications", "regression_checks"):
+        require_table(conn, table)
+
+    version = schema_version(conn)
+    if version != "4.2.0":
+        fail(f"unsupported TaskManager schema version: {version}")
+
+    payload_version = payload.get("payload_version", payload.get("format_version"))
+    if str(payload_version) != "1":
+        fail("payload_version must be 1.")
+    if payload.get("review_status") != "reviewed":
+        fail("review_status must be reviewed before plan commands persist payloads.")
+
+    plan_raw = payload.get("plan_analyses", payload.get("plan_analysis", {}))
+    if not isinstance(plan_raw, dict):
+        fail("plan_analyses must be an object.")
+
+    milestones_raw = payload.get("milestones", [])
+    if milestones_raw is None:
+        milestones_raw = []
+    if not isinstance(milestones_raw, list):
+        fail("milestones must be a list.")
+
+    tasks_raw = payload.get("tasks")
+    if not isinstance(tasks_raw, list) or len(tasks_raw) == 0:
+        fail("tasks must be a non-empty task list.")
+
+    memories_raw = payload.get("memories", [])
+    if memories_raw is None:
+        memories_raw = []
+    if not isinstance(memories_raw, list):
+        fail("memories must be a list when provided.")
+
+    plan_id = validate_id(plan_raw.get("id") or next_prefixed_id(conn, "plan_analyses", "PA-"), "plan_analyses.id")
+
+    milestones = []
+    milestone_ids = []
+    for index, raw in enumerate(milestones_raw, start=1):
+        if not isinstance(raw, dict):
+            fail(f"milestones[{index}] must be an object.")
+        milestone_id = validate_id(raw.get("id"), f"milestones[{index}].id")
+        status = raw.get("status", "planned")
+        if status not in MILESTONE_STATUSES:
+            fail(f"milestones[{index}].status must be one of: {', '.join(sorted(MILESTONE_STATUSES))}")
+        phase_order = raw.get("phase_order", index)
+        if not isinstance(phase_order, int) or isinstance(phase_order, bool):
+            fail(f"milestones[{index}].phase_order must be an integer.")
+        milestone_ids.append(milestone_id)
+        milestones.append({
+            "id": milestone_id,
+            "title": require_text(raw.get("title"), f"milestones[{index}].title"),
+            "description": optional_text(raw.get("description"), f"milestones[{index}].description"),
+            "acceptance_criteria": json_text(raw.get("acceptance_criteria"), f"milestones[{index}].acceptance_criteria", []),
+            "target_date": optional_text(raw.get("target_date"), f"milestones[{index}].target_date"),
+            "status": status,
+            "phase_order": phase_order,
+        })
+
+    ensure_unique(milestone_ids, "milestone ids")
+    payload_milestone_ids = set(milestone_ids)
+    existing_milestones = set(existing_ids(conn, "milestones", milestone_ids))
+
+    tasks = []
+    task_ids = []
+    parent_refs = {}
+    dependency_refs = []
+    for index, raw in enumerate(tasks_raw, start=1):
+        if not isinstance(raw, dict):
+            fail(f"tasks[{index}] must be an object.")
+        task_id = validate_id(raw.get("id"), f"tasks[{index}].id")
+        task_type = raw.get("type", "feature")
+        if task_type == "task":
+            task_type = "feature"
+        if task_type not in TASK_TYPES:
+            fail(f"tasks[{index}].type must be one of: {', '.join(sorted(TASK_TYPES))}")
+        status = raw.get("status", "planned")
+        if status not in TASK_STATUSES:
+            fail(f"tasks[{index}].status must be one of: {', '.join(sorted(TASK_STATUSES))}")
+        priority = raw.get("priority", "medium")
+        if priority not in PRIORITIES:
+            fail(f"tasks[{index}].priority must be one of: {', '.join(sorted(PRIORITIES))}")
+
+        parent_id = raw.get("parent_id")
+        if parent_id is not None:
+            parent_id = validate_id(parent_id, f"tasks[{index}].parent_id")
+            parent_refs[task_id] = parent_id
+
+        milestone_id = raw.get("milestone_id")
+        if milestone_id is not None:
+            milestone_id = validate_id(milestone_id, f"tasks[{index}].milestone_id")
+            if milestone_id not in payload_milestone_ids and milestone_id not in existing_milestones:
+                fail(f"tasks[{index}].milestone_id references missing milestone: {milestone_id}")
+
+        dependencies = raw.get("dependencies", [])
+        if dependencies is None:
+            dependencies = []
+        if not isinstance(dependencies, list):
+            fail(f"tasks[{index}].dependencies must be a list.")
+        for dependency in dependencies:
+            dependency_refs.append(validate_id(dependency, f"tasks[{index}].dependencies item"))
+
+        dependency_types = raw.get("dependency_types", {})
+        if dependency_types is None:
+            dependency_types = {}
+        if not isinstance(dependency_types, dict):
+            fail(f"tasks[{index}].dependency_types must be an object.")
+        for dep_id, dep_type in dependency_types.items():
+            validate_id(dep_id, f"tasks[{index}].dependency_types key")
+            if dep_type not in DEPENDENCY_TYPES:
+                fail(f"tasks[{index}].dependency_types[{dep_id}] must be hard or soft.")
+
+        complexity_scale = raw.get("complexity_scale")
+        if complexity_scale is not None and complexity_scale not in COMPLEXITY_SCALES:
+            fail(f"tasks[{index}].complexity_scale must be one of: {', '.join(sorted(COMPLEXITY_SCALES))}")
+
+        moscow = raw.get("moscow")
+        if moscow is not None and moscow not in MOSCOW_VALUES:
+            fail(f"tasks[{index}].moscow must be one of: {', '.join(sorted(MOSCOW_VALUES))}")
+
+        business_value = optional_int(raw.get("business_value"), f"tasks[{index}].business_value", 1, 5)
+        task_ids.append(task_id)
+        tasks.append({
+            "id": task_id,
+            "parent_id": parent_id,
+            "title": require_text(raw.get("title"), f"tasks[{index}].title"),
+            "description": optional_text(raw.get("description"), f"tasks[{index}].description"),
+            "details": optional_text(raw.get("details"), f"tasks[{index}].details"),
+            "test_strategy": optional_text(raw.get("test_strategy"), f"tasks[{index}].test_strategy"),
+            "status": status,
+            "type": task_type,
+            "priority": priority,
+            "complexity_scale": complexity_scale,
+            "complexity_reasoning": optional_text(raw.get("complexity_reasoning"), f"tasks[{index}].complexity_reasoning"),
+            "complexity_expansion_prompt": optional_text(raw.get("complexity_expansion_prompt"), f"tasks[{index}].complexity_expansion_prompt"),
+            "estimate_seconds": optional_int(raw.get("estimate_seconds"), f"tasks[{index}].estimate_seconds", 0),
+            "duration_seconds": optional_int(raw.get("duration_seconds"), f"tasks[{index}].duration_seconds", 0),
+            "owner": optional_text(raw.get("owner"), f"tasks[{index}].owner"),
+            "tags": json_text(raw.get("tags"), f"tasks[{index}].tags", []),
+            "dependencies": json.dumps(dependencies, sort_keys=True, separators=(",", ":")),
+            "dependency_types": json.dumps(dependency_types, sort_keys=True, separators=(",", ":")),
+            "milestone_id": milestone_id,
+            "acceptance_criteria": json_text(raw.get("acceptance_criteria"), f"tasks[{index}].acceptance_criteria", []),
+            "moscow": moscow,
+            "business_value": business_value,
+        })
+
+    ensure_unique(task_ids, "task ids")
+    payload_task_ids = set(task_ids)
+    existing_tasks = active_task_ids(conn, set(parent_refs.values()) | set(dependency_refs))
+
+    for child_id, parent_id in parent_refs.items():
+        if parent_id not in payload_task_ids and parent_id not in existing_tasks:
+            fail(f"task parent reference is missing or inactive: {child_id} -> {parent_id}")
+
+    for dependency_id in dependency_refs:
+        if dependency_id not in payload_task_ids and dependency_id not in existing_tasks:
+            fail(f"task dependency reference is missing or inactive: {dependency_id}")
+
+    for task_id in task_ids:
+        seen = set()
+        current = task_id
+        while current in parent_refs:
+            current = parent_refs[current]
+            if current in seen or current == task_id:
+                fail(f"cyclic parent relationship detected for task: {task_id}")
+            seen.add(current)
+
+    memories = []
+    memory_ids = []
+    for index, raw in enumerate(memories_raw, start=1):
+        if not isinstance(raw, dict):
+            fail(f"memories[{index}] must be an object.")
+        memory_id = raw.get("id")
+        if memory_id is None:
+            numeric = int(next_prefixed_id(conn, "memories", "M-")[2:])
+            while True:
+                memory_id = f"M-{numeric:03d}"
+                if memory_id not in memory_ids:
+                    break
+                numeric += 1
+        memory_id = validate_id(memory_id, f"memories[{index}].id")
+        kind = raw.get("kind", raw.get("type", "decision"))
+        if kind not in MEMORY_KINDS:
+            fail(f"memories[{index}].kind must be one of: {', '.join(sorted(MEMORY_KINDS))}")
+        source_type = raw.get("source_type", "command")
+        if source_type not in MEMORY_SOURCES:
+            fail(f"memories[{index}].source_type must be one of: {', '.join(sorted(MEMORY_SOURCES))}")
+        importance = optional_int(raw.get("importance", 3), f"memories[{index}].importance", 1, 5)
+        confidence = optional_float(raw.get("confidence", 0.8), f"memories[{index}].confidence", 0.8, 0, 1)
+        memory_ids.append(memory_id)
+        memories.append({
+            "id": memory_id,
+            "title": require_text(raw.get("title"), f"memories[{index}].title"),
+            "kind": kind,
+            "why_important": require_text(raw.get("why_important", "Manual plan memory persisted by plan-apply."), f"memories[{index}].why_important"),
+            "body": require_text(raw.get("body"), f"memories[{index}].body"),
+            "source_type": source_type,
+            "source_name": optional_text(raw.get("source_name", "taskmanager-engine.sh"), f"memories[{index}].source_name"),
+            "source_via": optional_text(raw.get("source_via", "plan-apply"), f"memories[{index}].source_via"),
+            "auto_updatable": 0,
+            "importance": importance,
+            "confidence": confidence,
+            "status": "active",
+            "scope": json_text(raw.get("scope"), f"memories[{index}].scope", {}),
+            "tags": json_text(raw.get("tags"), f"memories[{index}].tags", []),
+            "links": json_text(raw.get("links"), f"memories[{index}].links", []),
+        })
+
+    ensure_unique(memory_ids, "memory ids")
+
+    plan = {
+        "id": plan_id,
+        "prd_source": require_text(
+            plan_raw.get("prd_source")
+            or payload.get("source_description")
+            or payload.get("source")
+            or "prompt",
+            "plan_analyses.prd_source",
+        ),
+        "prd_hash": optional_text(plan_raw.get("prd_hash", payload.get("source_hash")), "plan_analyses.prd_hash"),
+        "tech_stack": json_text(plan_raw.get("tech_stack"), "plan_analyses.tech_stack", []),
+        "assumptions": json_text(plan_raw.get("assumptions"), "plan_analyses.assumptions", []),
+        "risks": json_text(plan_raw.get("risks"), "plan_analyses.risks", []),
+        "ambiguities": json_text(plan_raw.get("ambiguities"), "plan_analyses.ambiguities", []),
+        "nfrs": json_text(plan_raw.get("nfrs"), "plan_analyses.nfrs", []),
+        "scope_in": optional_text(plan_raw.get("scope_in"), "plan_analyses.scope_in"),
+        "scope_out": optional_text(plan_raw.get("scope_out"), "plan_analyses.scope_out"),
+        "cross_cutting": json_text(plan_raw.get("cross_cutting"), "plan_analyses.cross_cutting", []),
+        "decisions": json_text(plan_raw.get("decisions"), "plan_analyses.decisions", []),
+        "milestone_ids": json.dumps(milestone_ids, sort_keys=True, separators=(",", ":")),
+        "acceptance_criteria": json_text(plan_raw.get("acceptance_criteria"), "plan_analyses.acceptance_criteria", []),
+    }
+
+    duplicate_messages = []
+    plan_duplicates = existing_ids(conn, "plan_analyses", [plan_id])
+    if plan_duplicates:
+        duplicate_messages.append("plan_analyses " + ", ".join(plan_duplicates))
+    milestone_duplicates = existing_ids(conn, "milestones", milestone_ids)
+    if milestone_duplicates:
+        duplicate_messages.append("milestones " + ", ".join(milestone_duplicates))
+    task_duplicates = existing_ids(conn, "tasks", task_ids)
+    if task_duplicates:
+        duplicate_messages.append("tasks " + ", ".join(task_duplicates))
+    memory_duplicates = existing_ids(conn, "memories", memory_ids)
+    if memory_duplicates:
+        duplicate_messages.append("memories " + ", ".join(memory_duplicates))
+    if duplicate_messages:
+        fail("duplicate persisted id(s): " + "; ".join(duplicate_messages))
+
+    return {"plan": plan, "milestones": milestones, "tasks": tasks, "memories": memories}
+
+
+def print_validation(normalized: dict) -> None:
+    print("Plan payload valid")
+    print(f"Plan analysis: {normalized['plan']['id']}")
+    print(f"Milestones: {len(normalized['milestones'])}")
+    print(f"Tasks: {len(normalized['tasks'])}")
+    print(f"Memories: {len(normalized['memories'])}")
+    print("Apply mode: clean insert")
+
+
+def print_preview(normalized: dict) -> None:
+    print("Plan preview")
+    print(f"Plan analysis: {normalized['plan']['id']} source={normalized['plan']['prd_source']}")
+    print(f"Milestones ({len(normalized['milestones'])})")
+    for milestone in normalized["milestones"]:
+        print(f"  {milestone['id']} [{milestone['status']}] {milestone['title']}")
+    print(f"Tasks ({len(normalized['tasks'])})")
+    for task in normalized["tasks"]:
+        parent = f" parent={task['parent_id']}" if task["parent_id"] else ""
+        milestone = f" milestone={task['milestone_id']}" if task["milestone_id"] else ""
+        print(f"  {task['id']} [{task['status']}/{task['type']}] {task['title']}{parent}{milestone}")
+    print(f"Memories ({len(normalized['memories'])})")
+    for memory in normalized["memories"]:
+        print(f"  {memory['id']} [{memory['kind']}] {memory['title']}")
+    print("Apply mode: clean insert")
+
+
+def apply_plan(conn: sqlite3.Connection, normalized: dict) -> None:
+    plan = normalized["plan"]
+    milestones = normalized["milestones"]
+    tasks = normalized["tasks"]
+    memories = normalized["memories"]
+
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        conn.execute(
+            """
+            INSERT INTO plan_analyses (
+              id, prd_source, prd_hash, tech_stack, assumptions, risks,
+              ambiguities, nfrs, scope_in, scope_out, cross_cutting, decisions,
+              milestone_ids, acceptance_criteria
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                plan["id"], plan["prd_source"], plan["prd_hash"], plan["tech_stack"],
+                plan["assumptions"], plan["risks"], plan["ambiguities"], plan["nfrs"],
+                plan["scope_in"], plan["scope_out"], plan["cross_cutting"],
+                plan["decisions"], plan["milestone_ids"], plan["acceptance_criteria"],
+            ),
+        )
+        for milestone in milestones:
+            conn.execute(
+                """
+                INSERT INTO milestones (
+                  id, title, description, acceptance_criteria, target_date,
+                  status, phase_order
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    milestone["id"], milestone["title"], milestone["description"],
+                    milestone["acceptance_criteria"], milestone["target_date"],
+                    milestone["status"], milestone["phase_order"],
+                ),
+            )
+        for task in tasks:
+            conn.execute(
+                """
+                INSERT INTO tasks (
+                  id, parent_id, title, description, details, test_strategy,
+                  status, type, priority, complexity_scale, complexity_reasoning,
+                  complexity_expansion_prompt, estimate_seconds, duration_seconds,
+                  owner, tags, dependencies, dependency_types, milestone_id,
+                  acceptance_criteria, moscow, business_value
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    task["id"], task["parent_id"], task["title"], task["description"],
+                    task["details"], task["test_strategy"], task["status"], task["type"],
+                    task["priority"], task["complexity_scale"], task["complexity_reasoning"],
+                    task["complexity_expansion_prompt"], task["estimate_seconds"],
+                    task["duration_seconds"], task["owner"], task["tags"],
+                    task["dependencies"], task["dependency_types"], task["milestone_id"],
+                    task["acceptance_criteria"], task["moscow"], task["business_value"],
+                ),
+            )
+        for memory in memories:
+            conn.execute(
+                """
+                INSERT INTO memories (
+                  id, title, kind, why_important, body, source_type, source_name,
+                  source_via, auto_updatable, importance, confidence, status,
+                  scope, tags, links
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    memory["id"], memory["title"], memory["kind"], memory["why_important"],
+                    memory["body"], memory["source_type"], memory["source_name"],
+                    memory["source_via"], memory["auto_updatable"], memory["importance"],
+                    memory["confidence"], memory["status"], memory["scope"],
+                    memory["tags"], memory["links"],
+                ),
+            )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+
+    print("Plan apply inserted")
+    print("plan_analyses inserted: 1")
+    print(f"milestones inserted: {len(milestones)}")
+    print(f"tasks inserted: {len(tasks)}")
+    print(f"memories inserted: {len(memories)}")
+    print(f"Plan analysis: {plan['id']}")
+
+
+payload = read_payload(PAYLOAD_PATH)
+readonly = MODE in {"validate", "preview"}
+conn = connect_readonly(DB_PATH) if readonly else connect_writable(DB_PATH)
+
+try:
+    normalized = normalize_payload(conn, payload)
+    if MODE == "validate":
+        print_validation(normalized)
+    elif MODE == "preview":
+        print_preview(normalized)
+    elif MODE == "apply":
+        apply_plan(conn, normalized)
+    else:
+        fail(f"unknown plan mode: {MODE}", 2)
+except sqlite3.Error as exc:
+    fail(f"SQLite failure: {exc}")
+finally:
+    conn.close()
+PY
+}
+
+cmd_plan_validate() {
+    [[ $# -eq 2 ]] || die "plan-validate requires PROJECT_DIR PLAN_JSON." "$EXIT_USAGE"
+
+    local project
+    project="$(project_path "$1")"
+    local plan_json="$2"
+
+    require_sqlite
+    require_python3
+    local db
+    db="$(require_initialized_db "$project")"
+    plan_payload validate "$db" "$plan_json"
+}
+
+cmd_plan_preview() {
+    [[ $# -eq 2 ]] || die "plan-preview requires PROJECT_DIR PLAN_JSON." "$EXIT_USAGE"
+
+    local project
+    project="$(project_path "$1")"
+    local plan_json="$2"
+
+    require_sqlite
+    require_python3
+    local db
+    db="$(require_initialized_db "$project")"
+    plan_payload preview "$db" "$plan_json"
+}
+
+cmd_plan_apply() {
+    [[ $# -eq 2 ]] || die "plan-apply requires PROJECT_DIR PLAN_JSON." "$EXIT_USAGE"
+
+    local project
+    project="$(project_path "$1")"
+    local plan_json="$2"
+
+    require_sqlite
+    require_python3
+    local db
+    db="$(require_initialized_db "$project")"
+    plan_payload apply "$db" "$plan_json"
+}
+
 cmd_task_add() {
     [[ $# -ge 3 ]] || die "task-add requires PROJECT_DIR TASK_ID TITLE [TYPE] [STATUS] [PARENT_ID]." "$EXIT_USAGE"
     [[ $# -le 6 ]] || die "task-add accepts PROJECT_DIR, TASK_ID, TITLE, optional TYPE, optional STATUS, and optional PARENT_ID." "$EXIT_USAGE"
@@ -1231,6 +1866,15 @@ main() {
             ;;
         memory-deprecate)
             cmd_memory_deprecate "$@"
+            ;;
+        plan-validate)
+            cmd_plan_validate "$@"
+            ;;
+        plan-preview)
+            cmd_plan_preview "$@"
+            ;;
+        plan-apply)
+            cmd_plan_apply "$@"
             ;;
         export-json)
             [[ $# -le 1 ]] || die "export-json accepts at most one PROJECT_DIR argument." "$EXIT_USAGE"

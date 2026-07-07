@@ -12,7 +12,9 @@ first-class Codex skills that guide explicit use of that manual wrapper. Phase
 initialized engine state. Phase 5F adds explicit manual memory list/show/search,
 add, and deprecate commands plus a first-class memory operation skill. Phase 5G
 adds explicit manual task add/status/title/archive commands plus a first-class
-task operation skill.
+task operation skill. Phase 5H-2 adds explicit manual plan validate, preview,
+and apply wrapper commands for reviewed JSON payloads without adding a new
+skill.
 
 ## Contents
 
@@ -71,6 +73,9 @@ bin/taskmanager-engine.sh memory-show /path/to/project M-001
 bin/taskmanager-engine.sh memory-search /path/to/project query
 bin/taskmanager-engine.sh memory-add /path/to/project decision "Title" "Body" 3 0.9
 bin/taskmanager-engine.sh memory-deprecate /path/to/project M-001 "reason"
+bin/taskmanager-engine.sh plan-validate /path/to/project /path/to/plan.json
+bin/taskmanager-engine.sh plan-preview /path/to/project /path/to/plan.json
+bin/taskmanager-engine.sh plan-apply /path/to/project /path/to/plan.json
 bin/taskmanager-engine.sh export-json /path/to/project
 bin/taskmanager-engine.sh run-sql-tests
 ```
@@ -80,8 +85,9 @@ bin/taskmanager-engine.sh run-sql-tests
 `config.json` if missing, and creates `logs/`. It refuses to overwrite an
 existing `.taskmanager/taskmanager.db`.
 
-`status`, `next`, `show`, `memory-list`, `memory-show`, `memory-search`, and
-`export-json` require an initialized project and do not mutate the database.
+`status`, `next`, `show`, `memory-list`, `memory-show`, `memory-search`,
+`plan-validate`, `plan-preview`, and `export-json` require an initialized
+project and do not mutate the database.
 `show` requires an explicit project path and
 supports read-only overview, task list, task detail, milestone, memory,
 deferral, verification, and regression views.
@@ -101,6 +107,12 @@ memory row and relies on existing schema triggers for FTS. `memory-deprecate`
 sets `status = 'deprecated'` without deleting the memory; the schema has no
 clean deprecation-reason field, so the wrapper reports that limitation instead
 of overloading unrelated fields.
+`plan-validate`, `plan-preview`, and `plan-apply` require an explicit project
+path and reviewed `PLAN_JSON` file. `plan-validate` and `plan-preview` are
+read-only. `plan-apply` inserts only `plan_analyses`, `milestones`, `tasks`, and
+optional `memories` in one SQLite transaction. Plan commands do not parse PRDs,
+execute tasks, change current task state, write verification or regression rows,
+run research, enable hooks, or claim full upstream `plan` parity.
 `run-sql-tests` delegates to the copied test scripts and uses their disposable
 temp state.
 
@@ -167,10 +179,15 @@ manual wrapper.
 Latest local artifact result for Phase 5G: `test_sql_queries.sh` passed 285/0,
 `test_lifecycle_e2e.sh` passed 30/0, and `test_wrapper_cli.sh` passed 118/0
 while also running the copied SQL suites through `run-sql-tests`.
+Latest local artifact result for Phase 5H-2: `test_wrapper_cli.sh` passed
+152/0 while also running the copied SQL suite (`285/0`) and lifecycle suite
+(`30/0`) through `run-sql-tests`.
 
 This does not prove full Codex TaskManager runtime parity. The port still does
 not provide Codex command registration, automatic agents, hook-driven execution,
 or the full upstream command set. Phase 5F adds only safe manual memory
 operations, and Phase 5G adds only safe manual task operations, for initialized
-copied engine state; plan/run/verify/broad update/research and full upstream
-task or memory workflows remain outside this port.
+copied engine state. Phase 5H-2 adds only reviewed-payload manual plan import
+for initialized copied engine state; PRD parsing, run/verify/broad
+update/research, done gates, and full upstream task, memory, or plan workflows
+remain outside this port.

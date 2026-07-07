@@ -25,6 +25,7 @@ runtime behavior or full upstream TaskManager command parity.
 
 - `sqlite3` on `PATH`.
 - Bash.
+- `python3` on `PATH` for the manual `plan-*` payload commands.
 
 ## Commands
 
@@ -134,6 +135,32 @@ then inserts one active row with the next `M-NNN` id. `memory-deprecate` sets
 clean deprecation-reason field, so the reason argument is validated for operator
 intent but not stored.
 
+Validate, preview, and apply a reviewed plan payload:
+
+```bash
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh plan-validate /path/to/project /path/to/plan.json
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh plan-preview /path/to/project /path/to/plan.json
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh plan-apply /path/to/project /path/to/plan.json
+```
+
+`PLAN_JSON` is an explicit reviewed JSON file produced outside the wrapper. The
+wrapper does not read PRDs, ask questions, synthesize tasks, execute work, or
+start background activity.
+
+The plan payload must use `payload_version: 1` and
+`review_status: "reviewed"`. It may provide one `plan_analyses` object, zero or
+more `milestones`, one or more `tasks`, and optional `memories`.
+`plan_analyses.id` and memory ids are generated when omitted. Task and milestone
+ids are explicit stable payload ids. Task dependencies are stored in the
+existing `tasks.dependencies` and `tasks.dependency_types` JSON fields.
+
+`plan-validate` and `plan-preview` open the initialized database read-only and
+perform no writes. `plan-apply` writes all accepted plan artifacts in one SQLite
+transaction and fails before writing on invalid JSON, missing task list,
+unsupported schema version, duplicate payload IDs, invalid enum values, missing
+references, cyclic parent relationships, inactive dependencies, or collisions
+with existing persisted IDs.
+
 Print a JSON export of core tables without mutating data:
 
 ```bash
@@ -150,15 +177,17 @@ plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-en
 
 - Writes are limited to `PROJECT_DIR/.taskmanager/` for `init`.
 - `status`, `next`, `show`, `memory-list`, `memory-show`, `memory-search`, and
-  `export-json` are read-only.
+  `plan-validate`, `plan-preview`, and `export-json` are read-only.
 - `task-add`, `task-set-status`, `task-update-title`, and `task-archive` write
   only to `PROJECT_DIR/.taskmanager/taskmanager.db`.
 - `memory-add` and `memory-deprecate` write only to
   `PROJECT_DIR/.taskmanager/taskmanager.db`.
+- `plan-apply` writes only new `plan_analyses`, `milestones`, `tasks`, and
+  optional `memories` rows to `PROJECT_DIR/.taskmanager/taskmanager.db`.
 - `run-sql-tests` delegates to the copied test scripts, which use disposable
   `mktemp` directories.
-- The wrapper does not implement upstream TaskManager `plan`, `run`, `verify`,
-  broad `update`, full `memory`, or `research` command behavior.
+- The wrapper does not implement upstream TaskManager PRD parsing, `run`,
+  `verify`, broad `update`, full `memory`, or `research` command behavior.
 - The `show` command is visibility only; it does not execute tasks, update
   status, write verification rows, write logs, or claim upstream `show` parity.
 - The task commands do not plan tasks from PRDs, execute tasks, verify tasks,
@@ -166,4 +195,7 @@ plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-en
   upstream `update` parity.
 - The memory commands do not run research, auto-classify, update, supersede, or
   reconcile memory conflicts.
+- The plan commands do not execute tasks, write verification or regression rows,
+  change `state.current_task_id`, enable hooks, run research, or claim full
+  upstream `plan` parity.
 - Full upstream TaskManager runtime parity is not claimed.

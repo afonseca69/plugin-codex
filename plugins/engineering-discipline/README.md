@@ -27,6 +27,9 @@ wrapper that is operated only through explicit user direction or the `taskmanage
 skills. The manual task operations mutate only
 `PROJECT_DIR/.taskmanager/taskmanager.db`; they do not cascade parent statuses,
 write verification rows, execute tasks, or claim full upstream TaskManager parity.
+The manual plan commands validate, preview, and apply reviewed JSON payloads only; they do not
+parse PRDs, execute tasks, write verification or regression rows, change hook behavior, or add
+full upstream `plan` parity.
 
 ## Optional strict mode
 
