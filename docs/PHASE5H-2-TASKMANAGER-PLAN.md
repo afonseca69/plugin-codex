@@ -5,11 +5,13 @@
 Phase 5H-2 implements the smallest manual `plan` wrapper command family for
 initialized copied TaskManager SQLite engine state.
 
-It does not add a first-class Codex skill, change plugin version, change skill
+It did not add a first-class Codex skill, change plugin version, change skill
 count, enable hooks, register Codex commands, start background jobs, auto-run
 TaskManager, execute planned tasks, write verification rows, write regression
 rows, run research, implement done gates, or claim full upstream TaskManager
-plan/runtime parity.
+plan/runtime parity. Phase 5H-3 later adds the `taskmanager-engine-plan`
+operator skill for these existing manual commands without changing wrapper
+runtime behavior.
 
 ## Added Runtime Surface
 
@@ -95,8 +97,7 @@ while also delegating to the copied SQL suite (`285/0`) and lifecycle suite
 
 ## Remaining Gaps
 
-Remaining TaskManager runtime gaps include a first-class `taskmanager-engine-plan`
-operator skill, broader payload fixture coverage, PRD-to-payload guidance,
-`run`, `verify`, `research`, done gates, broad `update`, full upstream `plan`
-UX, and full upstream TaskManager parity. Each requires its own explicit slice
-and verification before any parity claim.
+Remaining TaskManager runtime gaps include broader payload fixture coverage,
+PRD-to-payload guidance, `run`, `verify`, `research`, done gates, broad
+`update`, full upstream `plan` UX, and full upstream TaskManager parity. Each
+requires its own explicit slice and verification before any parity claim.

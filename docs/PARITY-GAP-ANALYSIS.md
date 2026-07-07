@@ -20,7 +20,7 @@ It currently includes:
 - advisory hooks enabled by default
 - optional extended advisory hooks kept out of default config
 - optional strict hooks kept out of default config
-- 29 first-class Codex skills
+- 30 first-class Codex skills
 - selected Codex-adapted references and templates under existing skill directories
 - 8 Codex-native agent/persona reference guides under existing skill directories
 - TaskManager SQLite engine artifacts and a manual opt-in wrapper under
@@ -52,6 +52,7 @@ Current Codex skills:
 - `taskmanager-engine-init`
 - `taskmanager-engine-memory`
 - `taskmanager-engine-next`
+- `taskmanager-engine-plan`
 - `taskmanager-engine-show`
 - `taskmanager-engine-status`
 - `taskmanager-engine-task`
@@ -75,9 +76,9 @@ Current Codex reference/template/persona coverage:
   artifacts, and a manual engine wrapper.
 - `taskmanager-engine-*`: first-class Codex skills for explicit manual wrapper operation
   (`init`, `status`, `next`, read-only `show`, manual task operations, manual memory operations,
-  `export-json`, and copied engine tests).
+  manual plan payload operations, `export-json`, and copied engine tests).
   Phase 5H-2 adds manual wrapper `plan-validate`, `plan-preview`, and `plan-apply`
-  commands without adding a first-class plan skill.
+  commands. Phase 5H-3 adds the first-class `taskmanager-engine-plan` operator skill.
 
 ## Original Claude plugins
 
@@ -154,6 +155,7 @@ validation, preview, and apply commands:
 - `taskmanager-engine-show`
 - `taskmanager-engine-task`
 - `taskmanager-engine-memory`
+- `taskmanager-engine-plan`
 - `taskmanager-engine-export`
 - `taskmanager-engine-test`
 
@@ -168,9 +170,10 @@ update/supersede/conflict workflows or research-backed memory behavior.
 The Phase 5G task support is limited to manual `task-add`, `task-set-status`,
 `task-update-title`, and soft `task-archive`; it does not implement upstream planning,
 execution, verification, broad task update workflows, status cascades, or done gates.
-The Phase 5H-2 plan support is limited to manual `plan-validate`, `plan-preview`, and
-`plan-apply` for reviewed JSON payloads; it does not parse PRDs, generate plans, execute tasks,
-verify work, run research, implement done gates, or add full upstream `plan` parity.
+The Phase 5H-2/5H-3 plan support is limited to manual `plan-validate`, `plan-preview`, and
+`plan-apply` for reviewed JSON payloads plus the `taskmanager-engine-plan` operator skill; it
+does not parse PRDs, generate plans, execute tasks, verify work, run research, implement done
+gates, or add full upstream `plan` parity.
 Phase 5D records a future runtime design in
 [`docs/PHASE5D-TASKMANAGER-RUNTIME-DESIGN.md`](PHASE5D-TASKMANAGER-RUNTIME-DESIGN.md);
 Phase 5E implements the first read-only visibility slice from that design, and Phase 5F
@@ -285,7 +288,7 @@ Original hooks intentionally not default-enabled:
 
 ## TaskManager engine artifacts, manual wrapper, and wrapper skills
 
-Phase 5A, Phase 5B, Phase 5C, Phase 5E, Phase 5F, and Phase 5G include the SQLite-backed
+Phase 5A, Phase 5B, Phase 5C, Phase 5E, Phase 5F, Phase 5G, Phase 5H-2, and Phase 5H-3 include the SQLite-backed
 TaskManager engine artifacts, manual wrapper, read-only visibility, manual task and memory
 operations, and manual wrapper operation skills under
 `plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/`:
@@ -322,6 +325,10 @@ Phase 5G adds:
 
 - `taskmanager-engine-task`
 
+Phase 5H-3 adds:
+
+- `taskmanager-engine-plan`
+
 This is artifact/reference parity plus a limited manual wrapper and skill-level operator guides,
 not full runtime parity. The copied tests are adapted only to read the upstream verify guard SQL
 from a local passive test fixture because Phase 5A does not port
@@ -330,7 +337,8 @@ copied SQLite engine, Phase 5C documents that wrapper as first-class skills, Pha
 read-only `show` visibility for initialized engine state, and Phase 5F adds explicit memory
 list/show/search/add/deprecate operations. Phase 5G adds explicit task add/status/title/archive
 operations. Phase 5H-2 adds explicit reviewed-payload plan validate/preview/apply operations.
-These phases do not implement the original TaskManager command set.
+Phase 5H-3 adds the matching first-class manual plan operator skill. These phases do not
+implement the original TaskManager command set.
 
 ## Recommended conversion phases
 
@@ -673,6 +681,22 @@ Deliberate exclusions in this phase:
 - no full upstream `plan` parity claim;
 - no full TaskManager runtime parity claim.
 
+### Phase 5H-3 — Manual TaskManager plan operator skill
+
+Status: implemented on `main` after the `0.1.13` checkpoint without changing
+plugin version or hook posture. It intentionally adds one first-class skill,
+raising the mainline skill count from 29 to 30.
+
+Added under `plugins/engineering-discipline/skills/`:
+
+- `taskmanager-engine-plan`
+
+The skill documents safe manual use of `plan-validate`, `plan-preview`, and
+`plan-apply` for reviewed JSON payloads. It does not add wrapper commands,
+change runtime behavior, parse PRDs, generate plans, execute tasks, write
+verification or regression rows, enable hooks, add done gates, or claim full
+upstream `plan` parity.
+
 ## Current verdict
 
 The repository is now a functional Codex plugin with Phase 1 skill coverage, Phase 2
@@ -681,12 +705,12 @@ agent/persona reference coverage, Phase 5A TaskManager SQLite engine artifacts, 
 TaskManager engine wrappers, Phase 5C first-class manual wrapper operation skills, Phase 5D
 runtime parity design, Phase 5E read-only TaskManager runtime visibility, Phase 5F safe manual
 TaskManager memory operations, Phase 5G safe manual TaskManager task operations, Phase 5H
-runtime parity design, and Phase 5H-2 safe manual TaskManager plan payload operations. It is still
+runtime parity design, Phase 5H-2 safe manual TaskManager plan payload operations, and Phase 5H-3
+manual plan operator skill coverage. It is still
 not a full parity port of the original `mwguerra/plugins` suite. The `0.1.13` release readiness and parity status checkpoint
 is recorded in
 [`docs/RELEASE-READINESS-0.1.13.md`](RELEASE-READINESS-0.1.13.md).
 
-The next safe TaskManager step is a first-class `taskmanager-engine-plan` operator skill or
-similarly bounded payload-fixture expansion for the manual plan commands. Do not claim full
-SQLite-backed TaskManager runtime parity until the original command behavior exists and passes
-direct validation.
+The next safe TaskManager step is similarly bounded payload-fixture expansion for the manual plan
+commands or a PRD-to-reviewed-payload guidance slice. Do not claim full SQLite-backed TaskManager
+runtime parity until the original command behavior exists and passes direct validation.

@@ -44,6 +44,11 @@ first-class skill, change hooks, bump the plugin version, or claim full upstream
 `plan` parity. See
 [`docs/PHASE5H-2-TASKMANAGER-PLAN.md`](PHASE5H-2-TASKMANAGER-PLAN.md).
 
+Post-design update: Phase 5H-3 adds the first-class `taskmanager-engine-plan`
+operator skill for the Phase 5H-2 manual plan commands. It does not change the
+wrapper, parse PRDs, execute tasks, write verification or regression rows,
+change hooks, bump the plugin version, or claim full upstream `plan` parity.
+
 ## Context
 
 The upstream TaskManager plugin in `../mwguerra-plugins/taskmanager` provides a
@@ -356,7 +361,7 @@ Storage rules:
 
 Purpose:
 
-- Convert a PRD file, folder, or user prompt into validated SQLite state:
+- Import a reviewed structured plan payload into validated SQLite state:
   `plan_analyses`, `milestones`, `tasks`, and selected `memories`.
 
 Codex-native design:
@@ -647,17 +652,23 @@ smoke-test evidence.
    Implement simple field updates, tag/dependency edits, and guarded status
    changes before AI-assisted rewrites or scope cascades.
 
-5. Phase 5I: `plan` payload import.
+5. Phase 5H-2/5H-3: `plan` payload import and operator skill. Completed on
+   `main` after `0.1.13`.
 
-   Implement preview plus explicit apply for a structured plan payload. Add
-   milestone/task/analysis insertion in one transaction.
+   Implemented validate, preview, and explicit apply for reviewed JSON payloads,
+   plus the first-class manual `taskmanager-engine-plan` operator skill.
 
-6. Phase 5J: `verify` recording and gates.
+6. Future slice: PRD-to-reviewed-payload guidance.
+
+   Document how Codex should produce a reviewed `PLAN_JSON` payload before
+   invoking the wrapper. Keep PRD parsing and task synthesis outside the wrapper.
+
+7. Phase 5J: `verify` recording and gates.
 
    Record verification rows from explicit evidence and enforce `needs-review`
    routing before integrating with `run`.
 
-7. Phase 5K: explicit `run` orchestration.
+8. Phase 5K: explicit `run` orchestration.
 
    Add task selection, status transitions, memory/deferral display, and a done
    gate. Repository edits remain explicit Codex work, not wrapper-side behavior.

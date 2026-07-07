@@ -77,6 +77,7 @@ The marketplace points to `./plugins/engineering-discipline`.
 | `taskmanager-engine-show` | Inspect read-only TaskManager overview, task, milestone, memory, deferral, verification, and regression views. |
 | `taskmanager-engine-task` | Run safe manual task add, status, title, and soft archive operations through the explicit wrapper. |
 | `taskmanager-engine-memory` | Run safe manual memory list, show, search, add, and deprecate operations through the manual wrapper. |
+| `taskmanager-engine-plan` | Validate, preview, and apply reviewed TaskManager plan JSON payloads through the manual wrapper. |
 | `taskmanager-engine-export` | Export JSON-style core TaskManager data through the read-only manual wrapper. |
 | `taskmanager-engine-test` | Run copied TaskManager SQL, lifecycle, and wrapper tests. |
 | `laravel-conventions` | Apply Laravel/Filament/Pest conventions safely when the target project is Laravel. |
@@ -190,9 +191,11 @@ Version `0.1.13` adds safe manual TaskManager task operations through explicit
   including `init`, `status`, `next`, `show`, task operations, memory operations, `export-json`, and
   wrapper-driven `run-sql-tests`.
 
-Post-`0.1.13` main adds Phase 5H-2 manual plan payload commands without changing plugin version,
-skill count, or hook posture. Local validation for that slice updated `test_wrapper_cli.sh` to
-`152/0`, while the copied SQL suite remained `285/0` and lifecycle suite remained `30/0`.
+Post-`0.1.13` main adds Phase 5H-2 manual plan payload commands and the Phase 5H-3
+`taskmanager-engine-plan` operator skill without changing plugin version or hook posture. The
+current mainline skill count is 30. Local validation for the plan command slice updated
+`test_wrapper_cli.sh` to `152/0`, while the copied SQL suite remained `285/0` and lifecycle suite
+remained `30/0`.
 
 Hook behavior is unchanged from `0.1.9`: default hooks remain advisory-only, optional extended
 advisory hooks remain opt-in, and strict hooks remain opt-in. The TaskManager wrapper is manual

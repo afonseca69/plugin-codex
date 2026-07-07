@@ -15,6 +15,7 @@ operations:
 - `taskmanager-engine-show`
 - `taskmanager-engine-task`
 - `taskmanager-engine-memory`
+- `taskmanager-engine-plan`
 - `taskmanager-engine-export`
 - `taskmanager-engine-test`
 

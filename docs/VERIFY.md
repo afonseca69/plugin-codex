@@ -32,13 +32,14 @@ find plugins/engineering-discipline/skills -name SKILL.md -print | sort
 find . -type d -name __pycache__ -print
 ```
 
-For Phase 5G, confirm the sorted skill list includes:
+For Phase 5H-3, confirm the sorted skill list includes:
 
 ```text
 plugins/engineering-discipline/skills/taskmanager-engine-export/SKILL.md
 plugins/engineering-discipline/skills/taskmanager-engine-init/SKILL.md
 plugins/engineering-discipline/skills/taskmanager-engine-memory/SKILL.md
 plugins/engineering-discipline/skills/taskmanager-engine-next/SKILL.md
+plugins/engineering-discipline/skills/taskmanager-engine-plan/SKILL.md
 plugins/engineering-discipline/skills/taskmanager-engine-show/SKILL.md
 plugins/engineering-discipline/skills/taskmanager-engine-status/SKILL.md
 plugins/engineering-discipline/skills/taskmanager-engine-task/SKILL.md
@@ -142,9 +143,10 @@ Latest local result after Phase 5H-2: `test_sql_queries.sh` passed 285/0,
 Passing these suites validates the standalone copied SQLite artifacts and the limited manual
 wrapper only. Phase 5G adds first-class Codex skill entry points and explicit manual
 task-add/status/title/archive wrapper commands for initialized engine state. Phase 5H-2 adds
-manual reviewed-payload plan validate/preview/apply wrapper commands without adding a skill. These
-do not claim full TaskManager plan/task/runtime parity. Full parity still requires broader Codex
-command/runtime implementation and tests.
+manual reviewed-payload plan validate/preview/apply wrapper commands. Phase 5H-3 adds the
+first-class `taskmanager-engine-plan` operator skill for those commands without changing wrapper
+runtime behavior. These do not claim full TaskManager plan/task/runtime parity. Full parity still
+requires broader Codex command/runtime implementation and tests.
 
 ## Extended advisory hooks
 

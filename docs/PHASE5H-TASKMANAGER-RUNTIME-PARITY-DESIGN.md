@@ -6,21 +6,24 @@ Phase 5H began as a design-only slice for future Codex-native TaskManager
 runtime parity. Phase 5H-1 published the future manual `plan` command contract
 without runtime behavior. Phase 5H-2 implements the narrow manual
 `plan-validate`, `plan-preview`, and `plan-apply` wrapper command family for
-reviewed JSON payloads.
+reviewed JSON payloads. Phase 5H-3 adds the first-class manual
+`taskmanager-engine-plan` operator skill for that command family without
+changing wrapper runtime behavior.
 
-The published baseline remains plugin version `0.1.13` with 29 skills. Default
-hooks remain advisory-only. Optional extended advisory hooks and optional
-enforcing hooks remain opt-in and outside the plugin hook entry point.
+The published release checkpoint remains plugin version `0.1.13`; the current
+mainline skill count after Phase 5H-3 is 30. Default hooks remain
+advisory-only. Optional extended advisory hooks and optional enforcing hooks
+remain opt-in and outside the plugin hook entry point.
 
 Phase 5H-1 extends this design with a future manual `plan` command contract.
 It is still design-only. It does not implement the runtime `plan` surface or
 any wrapper behavior.
 
-Phase 5H-2 implements only the reviewed-payload manual plan wrapper surface. It
-does not add a first-class plan skill, parse PRDs, ask follow-up questions,
-execute tasks, write verification or regression rows, change current task state,
-run research, implement done gates, enable hooks, change plugin version, or
-claim full upstream `plan` parity.
+Phase 5H-2 implements only the reviewed-payload manual plan wrapper surface.
+Phase 5H-3 adds only the first-class manual plan operator skill. These slices do
+not parse PRDs, ask follow-up questions, execute tasks, write verification or
+regression rows, change current task state, run research, implement done gates,
+enable hooks, change plugin version, or claim full upstream `plan` parity.
 
 ## Relationship To Phase 5D
 
@@ -67,7 +70,7 @@ artifact flow, tests, and safety gates before any implementation can begin.
 | Passive visibility | Implemented by copied schema, query, migration, and test artifacts plus read-only `show` modes. | Reads initialized engine state; does not execute tasks or mutate source files. |
 | Manual task operations | Implemented in Phase 5G for add, status, title, and soft archive. | Mutates only explicit task rows in `PROJECT_DIR/.taskmanager/taskmanager.db`. |
 | Manual memory operations | Implemented in Phase 5F for list, show, search, add, and deprecate. | Mutates only explicit memory rows for add/deprecate; no research workflow. |
-| Manual plan payload validation/preview/apply | Implemented in Phase 5H-2 for reviewed JSON payloads. | `plan-validate` and `plan-preview` are read-only; `plan-apply` inserts plan analyses, milestones, tasks, and optional memories only. It does not parse PRDs or execute tasks. |
+| Manual plan payload validation/preview/apply | Implemented in Phase 5H-2 for reviewed JSON payloads, with the `taskmanager-engine-plan` operator skill added in Phase 5H-3. | `plan-validate` and `plan-preview` are read-only; `plan-apply` inserts plan analyses, milestones, tasks, and optional memories only. It does not parse PRDs or execute tasks. |
 | Future plan generation | Not implemented. | Codex or an operator should produce a reviewable structured payload before any database import. |
 | Future run execution | Not implemented. | Should keep repository edits as explicit Codex work, separate from deterministic DB updates. |
 | Future verify/reporting | Not implemented. | Should record evidence and produce reports before any status gate relies on it. |
@@ -409,12 +412,11 @@ correctness.
 Each later slice should update documentation and verification notes only for
 behavior actually implemented and tested.
 
-1. Phase 5I: first-class plan operator skill and broader payload fixtures.
+1. Phase 5I: broader plan payload fixtures.
 
-   Add a `taskmanager-engine-plan` skill or equivalent operator guide for the
-   Phase 5H-2 wrapper commands, plus focused fixture coverage for invalid
-   dependencies, enum values, schema-version mismatch, and collision reporting.
-   No PRD parsing or task execution is required in this slice.
+   Add focused fixture coverage for invalid dependencies, enum values,
+   schema-version mismatch, and collision reporting. No PRD parsing or task
+   execution is required in this slice.
 
 2. Phase 5J: plan payload generation guidance.
 
@@ -472,6 +474,22 @@ behavior actually implemented and tested.
 - No plugin version bump.
 - No skill count change.
 - No migration, manifest, hook, or skill edits.
+- No `run`, `verify`, `research`, done gates, auto-run, background work,
+  schedulers, agents, or subagents.
+- No full upstream `plan` or TaskManager runtime parity claim.
+
+## Acceptance Criteria For Phase 5H-3
+
+- `taskmanager-engine-plan` is present as a first-class Codex operator skill.
+- The skill documents manual `plan-validate`, `plan-preview`, and `plan-apply`
+  usage for reviewed JSON payloads.
+- The skill preserves the Phase 5H-2 runtime boundary: validation and preview
+  are read-only, and apply is bounded to plan analyses, milestones, tasks, and
+  optional memories.
+- No wrapper, hook, migration, executable runtime, or installed-cache behavior
+  changes.
+- No plugin version bump.
+- Skill count intentionally increases from 29 to 30.
 - No `run`, `verify`, `research`, done gates, auto-run, background work,
   schedulers, agents, or subagents.
 - No full upstream `plan` or TaskManager runtime parity claim.

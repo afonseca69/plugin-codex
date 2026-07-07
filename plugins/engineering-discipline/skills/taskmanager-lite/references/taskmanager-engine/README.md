@@ -13,8 +13,9 @@ initialized engine state. Phase 5F adds explicit manual memory list/show/search,
 add, and deprecate commands plus a first-class memory operation skill. Phase 5G
 adds explicit manual task add/status/title/archive commands plus a first-class
 task operation skill. Phase 5H-2 adds explicit manual plan validate, preview,
-and apply wrapper commands for reviewed JSON payloads without adding a new
-skill.
+and apply wrapper commands for reviewed JSON payloads. Phase 5H-3 adds the
+first-class manual plan operator skill without changing wrapper runtime
+behavior.
 
 ## Contents
 
@@ -129,6 +130,7 @@ operations:
 - `taskmanager-engine-show`
 - `taskmanager-engine-task`
 - `taskmanager-engine-memory`
+- `taskmanager-engine-plan`
 - `taskmanager-engine-export`
 - `taskmanager-engine-test`
 

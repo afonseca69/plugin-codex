@@ -10,8 +10,8 @@ Installable Codex plugin exposed by the root marketplace.
 - Passive TaskManager SQLite engine artifacts under
   `skills/taskmanager-lite/references/taskmanager-engine/`.
 - First-class `taskmanager-engine-*` skills that operate the manual wrapper
-  explicitly, including read-only runtime visibility and manual task/memory
-  operations.
+  explicitly, including read-only runtime visibility and manual task, memory,
+  and plan operations.
 - Advisory lifecycle hooks in `hooks/hooks.json`.
 - Optional strict hook examples in `hooks/enforcing-hooks.json`.
 - Ledger helper in `hooks/lib/ledger.sh` for recording verification evidence.
@@ -27,9 +27,9 @@ wrapper that is operated only through explicit user direction or the `taskmanage
 skills. The manual task operations mutate only
 `PROJECT_DIR/.taskmanager/taskmanager.db`; they do not cascade parent statuses,
 write verification rows, execute tasks, or claim full upstream TaskManager parity.
-The manual plan commands validate, preview, and apply reviewed JSON payloads only; they do not
-parse PRDs, execute tasks, write verification or regression rows, change hook behavior, or add
-full upstream `plan` parity.
+The manual plan commands and `taskmanager-engine-plan` skill validate, preview, and apply
+reviewed JSON payloads only; they do not parse PRDs, execute tasks, write verification or
+regression rows, change hook behavior, or add full upstream `plan` parity.
 
 ## Optional strict mode
 
