@@ -127,6 +127,9 @@ The implemented manual memory Phase 5F slice is recorded in
 [`docs/PHASE5F-TASKMANAGER-MEMORY.md`](docs/PHASE5F-TASKMANAGER-MEMORY.md).
 The implemented manual task Phase 5G slice is recorded in
 [`docs/PHASE5G-TASKMANAGER-TASK-OPERATIONS.md`](docs/PHASE5G-TASKMANAGER-TASK-OPERATIONS.md).
+The design-only Phase 5H refinement for future `plan`, `run`, and `verify`
+runtime parity is recorded in
+[`docs/PHASE5H-TASKMANAGER-RUNTIME-PARITY-DESIGN.md`](docs/PHASE5H-TASKMANAGER-RUNTIME-PARITY-DESIGN.md).
 
 ## Hooks policy
 

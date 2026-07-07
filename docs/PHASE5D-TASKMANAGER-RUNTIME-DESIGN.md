@@ -32,6 +32,11 @@ and the `taskmanager-engine-task` skill. It remains limited to explicit
 single-row task mutation, does not cascade parent statuses or write verification
 rows, and does not claim full upstream `update` or TaskManager runtime parity.
 
+Post-design update: Phase 5H is a design-only refinement for future `plan`,
+`run`, and `verify` runtime parity. It adds no runtime behavior, skills, hooks,
+version bump, or command implementation. See
+[`docs/PHASE5H-TASKMANAGER-RUNTIME-PARITY-DESIGN.md`](PHASE5H-TASKMANAGER-RUNTIME-PARITY-DESIGN.md).
+
 ## Context
 
 The upstream TaskManager plugin in `../mwguerra-plugins/taskmanager` provides a

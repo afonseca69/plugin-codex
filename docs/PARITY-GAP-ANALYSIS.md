@@ -169,7 +169,10 @@ Phase 5D records a future runtime design in
 [`docs/PHASE5D-TASKMANAGER-RUNTIME-DESIGN.md`](PHASE5D-TASKMANAGER-RUNTIME-DESIGN.md);
 Phase 5E implements the first read-only visibility slice from that design, and Phase 5F
 implements a narrow manual memory slice. Phase 5G implements a narrow manual task-operation
-slice.
+slice. Phase 5H records a design-only refinement for future `plan`, `run`, and `verify`
+runtime parity in
+[`docs/PHASE5H-TASKMANAGER-RUNTIME-PARITY-DESIGN.md`](PHASE5H-TASKMANAGER-RUNTIME-PARITY-DESIGN.md);
+it does not implement those commands.
 
 ## Skill coverage and remaining gaps
 
@@ -606,6 +609,28 @@ Deliberate exclusions in this phase:
 - no full upstream task/update parity claim;
 - no full TaskManager runtime parity claim.
 
+### Phase 5H — Design future TaskManager runtime parity
+
+Status: design-only after Codex plugin `0.1.13`. Detailed scope, safety model,
+future command surfaces, and deferred behavior are recorded in
+[`docs/PHASE5H-TASKMANAGER-RUNTIME-PARITY-DESIGN.md`](PHASE5H-TASKMANAGER-RUNTIME-PARITY-DESIGN.md).
+
+This phase adds no runtime surface. It does not change wrapper scripts, hooks,
+migrations, manifests, executable code, plugin version, or skill count.
+
+Design focus:
+
+- relationship to Phase 5D and later implementation slices;
+- explicit separation of passive visibility, manual task/memory operations,
+  future plan generation, future run execution, future verify/reporting, and
+  deferred done gates;
+- future `plan`, `run`, and `verify` command contracts as placeholders only;
+- manual Codex-native artifact flow and safety model;
+- advisory-only default hook posture and opt-in extended/enforcing hook posture;
+- deferred non-promises, including full upstream parity, auto-run, background
+  jobs, schedulers, autonomous agents/subagents, complete plan/run/verify/research
+  runtime, and enforcing done gates.
+
 ## Current verdict
 
 The repository is now a functional Codex plugin with Phase 1 skill coverage, Phase 2
@@ -613,12 +638,13 @@ reference/template coverage, Phase 3 optional extended advisory hook coverage, P
 agent/persona reference coverage, Phase 5A TaskManager SQLite engine artifacts, Phase 5B manual
 TaskManager engine wrappers, Phase 5C first-class manual wrapper operation skills, Phase 5D
 runtime parity design, Phase 5E read-only TaskManager runtime visibility, Phase 5F safe manual
-TaskManager memory operations, and Phase 5G safe manual TaskManager task operations. It is still
-not a full parity port of the original `mwguerra/plugins` suite. The `0.1.13` release readiness and
-parity status checkpoint is recorded in
+TaskManager memory operations, Phase 5G safe manual TaskManager task operations, and Phase 5H
+design-only refinement for future TaskManager runtime parity. It is still not a full parity port of
+the original `mwguerra/plugins` suite. The `0.1.13` release readiness and parity status checkpoint
+is recorded in
 [`docs/RELEASE-READINESS-0.1.13.md`](RELEASE-READINESS-0.1.13.md).
 
-The next safe TaskManager step is another incremental implementation slice from the Phase 5D
-design, such as verification recording or broader guarded update workflows. Do not claim full
-SQLite-backed TaskManager runtime parity until the original command behavior exists and passes
-direct validation.
+The next safe TaskManager step is an incremental implementation slice from the Phase 5H design,
+starting with a plan payload contract or another similarly bounded, directly tested command
+surface. Do not claim full SQLite-backed TaskManager runtime parity until the original command
+behavior exists and passes direct validation.
