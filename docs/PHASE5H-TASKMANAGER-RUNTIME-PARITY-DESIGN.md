@@ -11,6 +11,10 @@ The published baseline remains plugin version `0.1.13` with 29 skills. Default
 hooks remain advisory-only. Optional extended advisory hooks and optional
 enforcing hooks remain opt-in and outside the plugin hook entry point.
 
+Phase 5H-1 extends this design with a future manual `plan` command contract.
+It is still design-only. It does not implement the runtime `plan` surface or
+any wrapper behavior.
+
 ## Relationship To Phase 5D
 
 Phase 5D recorded the broad runtime architecture for moving from passive copied
@@ -93,6 +97,204 @@ explicit reviewed payload and should fail before partial writes on invalid JSON,
 duplicate IDs, invalid dependencies, invalid enum values, or missing schema
 state.
 
+## Phase 5H-1 Manual `plan` Command Contract
+
+Phase 5H-1 defines the smallest future command contract for manual planning. It
+does not add the command. The future `plan` surface exists to persist a reviewed
+Codex-generated plan into the TaskManager SQLite artifacts without starting
+execution, verification, research, or done-gate behavior.
+
+### Intended Purpose
+
+The future manual `plan` command should take an operator-reviewed plan payload
+and turn it into durable TaskManager planning artifacts. It should not parse a
+PRD inside the wrapper, ask follow-up questions, edit repository files, execute
+tasks, verify work, or start background activity.
+
+Codex operator skills remain responsible for reading the PRD or user prompt,
+resolving ambiguities with the user, and producing the structured payload. The
+wrapper remains responsible only for deterministic validation, preview, and
+transactional persistence inside `PROJECT_DIR/.taskmanager/`.
+
+### Command Inputs
+
+The future wrapper inputs should be explicit and file-based:
+
+- `PROJECT_DIR`: required for every `plan-*` command. The wrapper must resolve
+  it to one target `.taskmanager/taskmanager.db`.
+- `PLAN_JSON`: required for validation, preview, and apply. It should be a path
+  to a structured JSON file produced outside the wrapper and reviewed before
+  apply.
+- Optional output mode, if added later: human text by default, with JSON output
+  only when explicitly requested.
+
+The payload contract should include:
+
+- payload format version;
+- source description, such as PRD path, folder path, or prompt summary;
+- source hash when a file or folder source is available;
+- one `plan_analyses` record with assumptions, risks, ambiguities,
+  non-functional requirements, scope in/out, decisions, cross-cutting concerns,
+  and PRD-level acceptance criteria;
+- zero or more `milestones` with stable client IDs, title, description, phase
+  order, status, and acceptance criteria;
+- one or more `tasks` with stable client IDs, optional parent client ID,
+  milestone client ID, title, description, details, test strategy, type,
+  priority, status, complexity fields, tags, dependencies, dependency types,
+  and acceptance criteria;
+- optional `memories` for durable decisions or constraints that should be
+  persisted as active memories;
+- payload metadata that records the generating skill or operator context without
+  implying autonomous agent execution.
+
+### Expected Outputs
+
+`plan-validate PROJECT_DIR PLAN_JSON` should:
+
+- read the database schema and payload;
+- return success only when the payload can be safely previewed or applied;
+- report row counts, referenced IDs, resolved target IDs, and validation
+  warnings;
+- perform no database or filesystem writes.
+
+`plan-preview PROJECT_DIR PLAN_JSON` should:
+
+- show the plan analysis, milestones, task tree, dependency graph, optional
+  memories, and target tables;
+- highlight collisions with existing task, milestone, memory, or plan-analysis
+  IDs;
+- report whether apply would be a clean insert or rejected;
+- perform no database or filesystem writes.
+
+`plan-apply PROJECT_DIR PLAN_JSON` should:
+
+- require a payload that passes validation;
+- write all accepted plan artifacts in one SQLite transaction;
+- report inserted row counts and the final IDs written;
+- leave repository source files untouched;
+- fail without partial writes if any planned artifact cannot be persisted.
+
+### TaskManager Artifact Flow
+
+1. `init` creates the `.taskmanager/` directory, database, config, and logs.
+2. Codex reads a PRD, folder, or prompt only after explicit user intent.
+3. Codex produces a `PLAN_JSON` payload and presents the planning outcome for
+   operator review.
+4. `plan-validate` checks JSON shape, schema version, enum values, ID format,
+   parent references, milestone references, dependency references, acceptance
+   criteria shape, and memory fields without writing.
+5. `plan-preview` reads current TaskManager state and reports the exact
+   artifacts that would be inserted.
+6. `plan-apply` writes `plan_analyses`, `milestones`, `tasks`, and optional
+   `memories` in a single transaction.
+7. Dependencies are stored in the existing task JSON fields
+   `tasks.dependencies` and `tasks.dependency_types`; the copied schema does not
+   have a separate task-dependency table.
+8. `state.current_task_id`, `verifications`, and `regression_checks` remain
+   untouched by planning.
+9. Later `run` and `verify` surfaces may read the planned artifacts, but they
+   remain separate future slices.
+
+### SQLite, Task, And Memory Boundaries
+
+- Validation and preview may read `schema_version`, `plan_analyses`,
+  `milestones`, `tasks`, `memories`, `state`, and config files only to validate
+  compatibility and collisions.
+- Validation and preview must not mutate the database, config, logs, repository
+  files, or hook files.
+- Apply may insert new `plan_analyses`, `milestones`, `tasks`, and optional
+  `memories` only.
+- Apply must not update existing task status, archive existing tasks, rewrite
+  existing memories, deprecate memories, write verification rows, write
+  regression rows, or set current task state.
+- Apply must keep all writes inside `PROJECT_DIR/.taskmanager/`.
+- Apply must not edit source files, launch Codex work, invoke agents, perform
+  research, or enable hooks.
+
+### Safety Model
+
+- Require an explicit `PROJECT_DIR` and `PLAN_JSON` path for every future
+  mutating plan operation.
+- Treat payload generation and payload persistence as separate steps.
+- Require preview before apply at the skill/operator layer, even if the wrapper
+  later exposes direct `plan-apply`.
+- Validate all JSON fields with a structured parser before SQLite writes.
+- Validate task and milestone IDs before resolving client IDs to persisted IDs.
+- Validate dependency references against the payload and existing database state.
+- Validate status, type, priority, complexity, milestone status, memory kind,
+  memory source type, and memory confidence/importance ranges before writing.
+- Use one SQLite transaction for apply and prove rollback on every failure mode.
+- Keep hooks advisory-only and never use hooks to trigger planning.
+- Keep extended and enforcing hooks opt-in and outside the default hook entry
+  point.
+- Keep all execution manual: no auto-run, no background work, no schedulers, no
+  autonomous agents, and no subagents.
+
+### Failure Modes
+
+The future implementation should fail closed, with non-zero exit status and no
+partial writes, for:
+
+- missing `PROJECT_DIR`, missing database, or missing `PLAN_JSON`;
+- unreadable or invalid JSON;
+- unsupported payload format version;
+- unsupported TaskManager schema version;
+- duplicate IDs inside the payload;
+- collisions with existing persisted IDs when overwrite behavior is not
+  explicitly supported;
+- invalid enum values or malformed JSON subfields;
+- missing parent, milestone, or dependency references;
+- cyclic parent relationships;
+- dependencies that point to archived, canceled, duplicate, or missing tasks;
+- empty task lists;
+- optional memories that violate memory kind, source, confidence, importance, or
+  required body/title constraints;
+- SQLite constraint failures;
+- interrupted apply transactions.
+
+### Later Validation Strategy
+
+A later implementation slice must add tests before any runtime claim is made:
+
+- payload validator tests for each failure mode above;
+- preview tests that assert no database file timestamp, checksum, or row count
+  changes;
+- apply tests that assert exact before/after rows for `plan_analyses`,
+  `milestones`, `tasks`, and optional `memories`;
+- rollback tests for mid-transaction failure;
+- idempotency or collision tests that define repeated apply behavior;
+- output tests for human text and any explicit JSON output mode;
+- wrapper help and argument validation tests;
+- skill documentation tests or review that prove the operator guide does not
+  promise execution, verification, research, done gates, hook enforcement, or
+  full upstream parity.
+
+### Acceptance Criteria For Future Implementation
+
+A future implementation of this contract is acceptable only when:
+
+- `plan-validate`, `plan-preview`, and `plan-apply` are implemented explicitly
+  and documented;
+- validation and preview are proven read-only;
+- apply is proven transactional and bounded to `PROJECT_DIR/.taskmanager/`;
+- task dependencies are persisted according to the current schema fields;
+- optional memory writes are explicit and bounded to new rows;
+- no repository source files are edited by the wrapper;
+- no `run`, `verify`, `research`, done-gate, auto-run, background, scheduler,
+  agent, or subagent behavior is added;
+- hooks remain advisory-only by default, and extended/enforcing hooks remain
+  opt-in;
+- README, parity docs, skills, wrapper tests, and release notes are updated only
+  for behavior actually implemented and tested;
+- the plugin version and skill count are changed only in a deliberate release
+  slice, not as a side effect of this design.
+
+### Phase 5H-1 Does Not Implement
+
+Phase 5H-1 does not implement runtime `plan`, `run`, `verify`, `research`, done
+gates, auto-run, background jobs, schedulers, default enforcing hooks,
+autonomous agents, subagents, or full parity with upstream `mwguerra/plugins`.
+
 ### Future `run`
 
 The safest future `run` shape is context-first:
@@ -168,18 +370,18 @@ correctness.
 Each later slice should update documentation and verification notes only for
 behavior actually implemented and tested.
 
-1. Phase 5I: plan payload contract.
+1. Phase 5I: plan validator and preview implementation.
 
-   Define a structured JSON payload and validation rules. Add tests for invalid
-   JSON, duplicate task IDs, invalid dependencies, invalid enum values, and
-   schema-version mismatch. No PRD parsing or DB mutation is required in this
-   slice.
+   Implement the Phase 5H-1 payload validation and read-only preview surfaces.
+   Add tests for invalid JSON, duplicate task IDs, invalid dependencies,
+   invalid enum values, schema-version mismatch, and preview read-only
+   assertions. No PRD parsing or DB mutation is required in this slice.
 
-2. Phase 5J: plan preview and transactional apply.
+2. Phase 5J: transactional plan apply implementation.
 
-   Add preview output and explicit apply for a reviewed payload. Prove atomic
-   rollback and before/after database state for milestones, tasks, dependencies,
-   memories, and plan analyses.
+   Add explicit apply for a reviewed payload. Prove atomic rollback and
+   before/after database state for milestones, tasks, task dependency JSON,
+   optional memories, and plan analyses.
 
 3. Phase 5K: verification recording and reporting.
 
