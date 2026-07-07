@@ -48,6 +48,17 @@ assert_contains() {
     fi
 }
 
+assert_not_contains() {
+    local actual="$1"
+    local needle="$2"
+    local msg="$3"
+    if [[ "$actual" == *"$needle"* ]]; then
+        fail "$msg (unexpected '$needle')"
+    else
+        pass "$msg"
+    fi
+}
+
 assert_eq() {
     local actual="$1"
     local expected="$2"
@@ -82,6 +93,10 @@ echo "--- Command: help ---"
 HELP_OUTPUT=$("$WRAPPER" help)
 assert_contains "$HELP_OUTPUT" "init [PROJECT_DIR]" "help documents init"
 assert_contains "$HELP_OUTPUT" "show PROJECT_DIR" "help documents read-only show"
+assert_contains "$HELP_OUTPUT" "task-add PROJECT_DIR TASK_ID TITLE" "help documents task-add"
+assert_contains "$HELP_OUTPUT" "task-set-status PROJECT_DIR TASK_ID STATUS" "help documents task-set-status"
+assert_contains "$HELP_OUTPUT" "task-update-title PROJECT_DIR TASK_ID TITLE" "help documents task-update-title"
+assert_contains "$HELP_OUTPUT" "task-archive PROJECT_DIR TASK_ID" "help documents task-archive"
 assert_contains "$HELP_OUTPUT" "memory-list PROJECT_DIR" "help documents memory-list"
 assert_contains "$HELP_OUTPUT" "memory-add PROJECT_DIR" "help documents memory-add"
 assert_contains "$HELP_OUTPUT" "run-sql-tests" "help documents run-sql-tests"
@@ -239,10 +254,126 @@ else
 fi
 echo ""
 
-sqlite3 "$DB" "INSERT INTO tasks (id, title, status, type, priority, dependencies) VALUES ('T-001', 'Wrapper task', 'planned', 'feature', 'high', '[]');"
+echo "--- Command: task operations ---"
+if TASK_ADD_USAGE_ERR=$("$WRAPPER" task-add "$PROJECT" T-MISSING 2>&1 >/dev/null); then
+    fail "task-add requires TITLE"
+else
+    assert_contains "$TASK_ADD_USAGE_ERR" "task-add requires PROJECT_DIR TASK_ID TITLE" "task-add explains missing title"
+fi
+
+if TASK_ADD_ID_ERR=$("$WRAPPER" task-add "$PROJECT" "bad/id" "Bad task id" 2>&1 >/dev/null); then
+    fail "task-add rejects invalid task id"
+else
+    assert_contains "$TASK_ADD_ID_ERR" "TASK_ID contains unsupported characters" "task-add explains invalid task id"
+fi
+
+if TASK_ADD_TYPE_ERR=$("$WRAPPER" task-add "$PROJECT" T-BADTYPE "Bad task type" unsupported planned 2>&1 >/dev/null); then
+    fail "task-add rejects invalid task type"
+else
+    assert_contains "$TASK_ADD_TYPE_ERR" "TYPE must be one of" "task-add explains invalid task type"
+fi
+
+if TASK_ADD_STATUS_ERR=$("$WRAPPER" task-add "$PROJECT" T-BADSTATUS "Bad task status" feature started 2>&1 >/dev/null); then
+    fail "task-add rejects invalid task status"
+else
+    assert_contains "$TASK_ADD_STATUS_ERR" "STATUS must be one of" "task-add explains invalid task status"
+fi
+
+TASK_ADD_OUTPUT=$("$WRAPPER" task-add "$PROJECT" T-001 "Wrapper task" feature planned)
+assert_contains "$TASK_ADD_OUTPUT" "Created task: T-001" "task-add reports created task id"
+CREATED_TASK_COUNT=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE id = 'T-001' AND title = 'Wrapper task' AND status = 'planned' AND type = 'feature' AND priority = 'medium' AND parent_id IS NULL;")
+assert_eq "$CREATED_TASK_COUNT" "1" "task-add inserts one task row with safe defaults"
+
+NEXT_PARENT_OUTPUT=$("$WRAPPER" next "$PROJECT")
+assert_contains "$NEXT_PARENT_OUTPUT" "T-001" "next prints available parent task id"
+assert_contains "$NEXT_PARENT_OUTPUT" "Wrapper task" "next prints available parent task title"
+
+if TASK_ADD_DUPLICATE_ERR=$("$WRAPPER" task-add "$PROJECT" T-001 "Duplicate task" 2>&1 >/dev/null); then
+    fail "task-add refuses duplicate task ids"
+else
+    assert_contains "$TASK_ADD_DUPLICATE_ERR" "Task already exists: T-001" "task-add explains duplicate task id"
+fi
+
+if TASK_ADD_PARENT_ERR=$("$WRAPPER" task-add "$PROJECT" T-MISSING-PARENT "Missing parent" feature planned T-NOPE 2>&1 >/dev/null); then
+    fail "task-add refuses a missing parent"
+else
+    assert_contains "$TASK_ADD_PARENT_ERR" "Parent task not found: T-NOPE" "task-add explains missing parent"
+fi
+
+TASK_CHILD_OUTPUT=$("$WRAPPER" task-add "$PROJECT" T-001.1 "Wrapper child task" task planned T-001)
+assert_contains "$TASK_CHILD_OUTPUT" "Created task: T-001.1" "task-add creates a child task when parent exists"
+CHILD_PARENT_ID=$(sqlite3 "$DB" "SELECT parent_id FROM tasks WHERE id = 'T-001.1';")
+assert_eq "$CHILD_PARENT_ID" "T-001" "task-add stores the child parent id"
+CHILD_TYPE=$(sqlite3 "$DB" "SELECT type FROM tasks WHERE id = 'T-001.1';")
+assert_eq "$CHILD_TYPE" "feature" "task-add normalizes generic task type to schema default"
+
+if TASK_SET_STATUS_USAGE_ERR=$("$WRAPPER" task-set-status "$PROJECT" T-001.1 2>&1 >/dev/null); then
+    fail "task-set-status requires STATUS"
+else
+    assert_contains "$TASK_SET_STATUS_USAGE_ERR" "task-set-status requires PROJECT_DIR TASK_ID STATUS" "task-set-status explains missing status"
+fi
+
+if TASK_SET_STATUS_INVALID_ERR=$("$WRAPPER" task-set-status "$PROJECT" T-001.1 started 2>&1 >/dev/null); then
+    fail "task-set-status rejects invalid status"
+else
+    assert_contains "$TASK_SET_STATUS_INVALID_ERR" "STATUS must be one of" "task-set-status explains invalid status"
+fi
+
+TASK_STATUS_OUTPUT=$("$WRAPPER" task-set-status "$PROJECT" T-001.1 in-progress)
+assert_contains "$TASK_STATUS_OUTPUT" "Updated task status: T-001.1 -> in-progress" "task-set-status reports in-progress update"
+STARTED_AT=$(sqlite3 "$DB" "SELECT COALESCE(started_at, '') FROM tasks WHERE id = 'T-001.1';")
+if [[ -n "$STARTED_AT" ]]; then
+    pass "task-set-status sets started_at when entering in-progress"
+else
+    fail "task-set-status sets started_at when entering in-progress"
+fi
+
+TASK_DONE_OUTPUT=$("$WRAPPER" task-set-status "$PROJECT" T-001.1 done)
+assert_contains "$TASK_DONE_OUTPUT" "Updated task status: T-001.1 -> done" "task-set-status reports done update"
+COMPLETED_AT=$(sqlite3 "$DB" "SELECT COALESCE(completed_at, '') FROM tasks WHERE id = 'T-001.1';")
+if [[ -n "$COMPLETED_AT" ]]; then
+    pass "task-set-status sets completed_at when entering done"
+else
+    fail "task-set-status sets completed_at when entering done"
+fi
+
+TASK_PLANNED_OUTPUT=$("$WRAPPER" task-set-status "$PROJECT" T-001.1 planned)
+assert_contains "$TASK_PLANNED_OUTPUT" "Updated task status: T-001.1 -> planned" "task-set-status reports planned update"
+COMPLETED_AFTER_REOPEN=$(sqlite3 "$DB" "SELECT COALESCE(completed_at, '') FROM tasks WHERE id = 'T-001.1';")
+assert_eq "$COMPLETED_AFTER_REOPEN" "$COMPLETED_AT" "task-set-status preserves completed_at when moving away from done"
+
+if TASK_UPDATE_TITLE_USAGE_ERR=$("$WRAPPER" task-update-title "$PROJECT" T-001.1 2>&1 >/dev/null); then
+    fail "task-update-title requires TITLE"
+else
+    assert_contains "$TASK_UPDATE_TITLE_USAGE_ERR" "task-update-title requires PROJECT_DIR TASK_ID TITLE" "task-update-title explains missing title"
+fi
+
+TITLE_CONTEXT_BEFORE=$(sqlite3 "$DB" "SELECT status || '|' || type || '|' || priority || '|' || COALESCE(parent_id, '') || '|' || created_at || '|' || COALESCE(started_at, '') || '|' || COALESCE(completed_at, '') || '|' || COALESCE(archived_at, '') FROM tasks WHERE id = 'T-001.1';")
+UPDATED_AT_BEFORE=$(sqlite3 "$DB" "SELECT updated_at FROM tasks WHERE id = 'T-001.1';")
+sleep 1
+TASK_UPDATE_TITLE_OUTPUT=$("$WRAPPER" task-update-title "$PROJECT" T-001.1 "Wrapper child task updated")
+assert_contains "$TASK_UPDATE_TITLE_OUTPUT" "Updated task title: T-001.1" "task-update-title reports updated task id"
+UPDATED_TITLE=$(sqlite3 "$DB" "SELECT title FROM tasks WHERE id = 'T-001.1';")
+assert_eq "$UPDATED_TITLE" "Wrapper child task updated" "task-update-title changes title"
+TITLE_CONTEXT_AFTER=$(sqlite3 "$DB" "SELECT status || '|' || type || '|' || priority || '|' || COALESCE(parent_id, '') || '|' || created_at || '|' || COALESCE(started_at, '') || '|' || COALESCE(completed_at, '') || '|' || COALESCE(archived_at, '') FROM tasks WHERE id = 'T-001.1';")
+assert_eq "$TITLE_CONTEXT_AFTER" "$TITLE_CONTEXT_BEFORE" "task-update-title preserves non-title core fields"
+UPDATED_AT_AFTER=$(sqlite3 "$DB" "SELECT updated_at FROM tasks WHERE id = 'T-001.1';")
+if [[ "$UPDATED_AT_AFTER" > "$UPDATED_AT_BEFORE" ]]; then
+    pass "task-update-title advances updated_at"
+else
+    fail "task-update-title advances updated_at"
+fi
+
+SHOW_CREATED_TASKS=$("$WRAPPER" show "$PROJECT" tasks 10)
+assert_contains "$SHOW_CREATED_TASKS" "T-001" "show tasks prints created parent task"
+assert_contains "$SHOW_CREATED_TASKS" "T-001.1" "show tasks prints created child task"
+SHOW_CREATED_TASK=$("$WRAPPER" show "$PROJECT" task T-001.1)
+assert_contains "$SHOW_CREATED_TASK" "Task T-001.1" "show task prints created child heading"
+assert_contains "$SHOW_CREATED_TASK" "Wrapper child task updated" "show task prints updated child title"
+
 NEXT_OUTPUT=$("$WRAPPER" next "$PROJECT")
-assert_contains "$NEXT_OUTPUT" "T-001" "next prints available task id"
-assert_contains "$NEXT_OUTPUT" "Wrapper task" "next prints available task title"
+assert_contains "$NEXT_OUTPUT" "T-001.1" "next prints available child task id"
+assert_contains "$NEXT_OUTPUT" "Wrapper child task updated" "next prints available child task title"
 echo ""
 
 sqlite3 "$DB" <<'SQL'
@@ -298,7 +429,7 @@ DB_SHA_BEFORE=$(sha256sum "$DB")
 SHOW_OVERVIEW=$("$WRAPPER" show "$PROJECT" overview)
 assert_contains "$SHOW_OVERVIEW" "TaskManager engine overview" "show overview prints heading"
 assert_contains "$SHOW_OVERVIEW" "Schema version: 4.2.0" "show overview prints schema version"
-assert_contains "$SHOW_OVERVIEW" "tasks: 2" "show overview prints task count"
+assert_contains "$SHOW_OVERVIEW" "tasks: 3" "show overview prints task count"
 assert_contains "$SHOW_OVERVIEW" "regression_checks: 1" "show overview prints regression count"
 
 SHOW_DEFAULT=$("$WRAPPER" show "$PROJECT")
@@ -348,6 +479,31 @@ printf '%s' "$EXPORT_OUTPUT" | python3 -c "import json,sys; data=json.load(sys.s
 pass "export-json prints parseable core table JSON"
 COUNT_AFTER=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks;")
 assert_eq "$COUNT_AFTER" "$COUNT_BEFORE" "export-json does not mutate tasks"
+echo ""
+
+echo "--- Command: task archive ---"
+if TASK_ARCHIVE_USAGE_ERR=$("$WRAPPER" task-archive "$PROJECT" 2>&1 >/dev/null); then
+    fail "task-archive requires TASK_ID"
+else
+    assert_contains "$TASK_ARCHIVE_USAGE_ERR" "task-archive requires PROJECT_DIR TASK_ID" "task-archive explains missing task id"
+fi
+
+TASK_ARCHIVE_ADD_OUTPUT=$("$WRAPPER" task-add "$PROJECT" T-ARCH "Archive candidate" feature planned)
+assert_contains "$TASK_ARCHIVE_ADD_OUTPUT" "Created task: T-ARCH" "task-add creates an archive candidate"
+TASK_ARCHIVE_OUTPUT=$("$WRAPPER" task-archive "$PROJECT" T-ARCH)
+assert_contains "$TASK_ARCHIVE_OUTPUT" "Archived task: T-ARCH" "task-archive reports archived task id"
+ARCHIVED_AT=$(sqlite3 "$DB" "SELECT COALESCE(archived_at, '') FROM tasks WHERE id = 'T-ARCH';")
+if [[ -n "$ARCHIVED_AT" ]]; then
+    pass "task-archive sets archived_at"
+else
+    fail "task-archive sets archived_at"
+fi
+ARCHIVED_ROW_COUNT=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE id = 'T-ARCH';")
+assert_eq "$ARCHIVED_ROW_COUNT" "1" "task-archive keeps the task row"
+SHOW_TASKS_AFTER_ARCHIVE=$("$WRAPPER" show "$PROJECT" tasks 100)
+assert_not_contains "$SHOW_TASKS_AFTER_ARCHIVE" "T-ARCH" "task-archive hides task from show tasks"
+NEXT_AFTER_ARCHIVE=$("$WRAPPER" next "$PROJECT")
+assert_not_contains "$NEXT_AFTER_ARCHIVE" "T-ARCH" "task-archive hides task from next"
 echo ""
 
 echo "--- Command: run-sql-tests ---"

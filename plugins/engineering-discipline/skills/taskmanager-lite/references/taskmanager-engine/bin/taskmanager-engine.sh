@@ -39,6 +39,14 @@ Manual commands:
   next [PROJECT_DIR]        Show rows from v_next_task without mutating data.
   show PROJECT_DIR [view] [args...]
                             Read safe runtime visibility views without mutating data.
+  task-add PROJECT_DIR TASK_ID TITLE [TYPE] [STATUS] [PARENT_ID]
+                            Explicitly add one manual task row.
+  task-set-status PROJECT_DIR TASK_ID STATUS
+                            Explicitly update one task status.
+  task-update-title PROJECT_DIR TASK_ID TITLE
+                            Explicitly update one task title.
+  task-archive PROJECT_DIR TASK_ID
+                            Soft archive one task by setting archived_at.
   memory-list PROJECT_DIR [limit]
                             List memory id, type, importance, confidence, status, and title.
   memory-show PROJECT_DIR MEMORY_ID
@@ -70,6 +78,8 @@ Safety notes:
   - init refuses to overwrite an existing PROJECT_DIR/.taskmanager/taskmanager.db.
   - Read-only commands require an initialized PROJECT_DIR/.taskmanager/taskmanager.db.
   - show requires an explicit PROJECT_DIR and uses sqlite3 read-only access.
+  - task-add, task-set-status, task-update-title, and task-archive mutate only PROJECT_DIR/.taskmanager/taskmanager.db.
+  - Task commands do not cascade parent statuses, execute work, or write verification rows.
   - memory-add and memory-deprecate mutate only PROJECT_DIR/.taskmanager/taskmanager.db.
   - Memory commands do not auto-classify, research, supersede, or reconcile conflicts.
 
@@ -188,6 +198,65 @@ validate_required_text() {
     local label="$2"
 
     [[ -n "$value" ]] || die "$label must not be empty." "$EXIT_USAGE"
+}
+
+task_statuses() {
+    printf 'draft planned in-progress blocked paused done canceled duplicate needs-review\n'
+}
+
+validate_task_status() {
+    local value="$1"
+    case "$value" in
+        draft|planned|in-progress|blocked|paused|done|canceled|duplicate|needs-review)
+            ;;
+        *)
+            die "STATUS must be one of: $(task_statuses)" "$EXIT_USAGE"
+            ;;
+    esac
+}
+
+task_types() {
+    printf 'feature bug chore analysis spike task(alias for feature)\n'
+}
+
+normalize_task_type() {
+    local value="$1"
+    case "$value" in
+        feature|bug|chore|analysis|spike)
+            printf '%s\n' "$value"
+            ;;
+        task)
+            printf 'feature\n'
+            ;;
+        *)
+            die "TYPE must be one of: $(task_types)" "$EXIT_USAGE"
+            ;;
+    esac
+}
+
+validate_task_id() {
+    local value="$1"
+    local label="${2:-TASK_ID}"
+
+    [[ -n "$value" ]] || die "$label must not be empty." "$EXIT_USAGE"
+    if [[ ! "$value" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$ ]]; then
+        die "$label contains unsupported characters; must start with A-Z a-z 0-9 and use only A-Z a-z 0-9 . _ : -" "$EXIT_USAGE"
+    fi
+}
+
+require_tasks_table() {
+    local db="$1"
+
+    table_exists "$db" "tasks" || die "tasks table does not exist in $db."
+}
+
+task_exists() {
+    local db="$1"
+    local task_id="$2"
+    local task_id_sql
+    task_id_sql="$(sql_literal "$task_id")"
+
+    [[ "$(sqlite3 -readonly "$db" "SELECT COUNT(*) FROM tasks WHERE id = $task_id_sql;")" == "1" ]]
 }
 
 memory_types() {
@@ -664,6 +733,217 @@ SQL
     printf 'Note: deprecation reason is not stored; schema has status/superseded fields but no clean deprecation reason field.\n'
 }
 
+task_add() {
+    local db="$1"
+    local task_id="$2"
+    local title="$3"
+    local type="${4:-feature}"
+    local status="${5:-planned}"
+    local parent_id="${6:-}"
+
+    require_tasks_table "$db"
+    validate_task_id "$task_id" "TASK_ID"
+    validate_required_text "$title" "TITLE"
+    type="$(normalize_task_type "$type")"
+    validate_task_status "$status"
+
+    if [[ -n "$parent_id" ]]; then
+        validate_task_id "$parent_id" "PARENT_ID"
+    fi
+
+    local task_id_sql
+    task_id_sql="$(sql_literal "$task_id")"
+    if task_exists "$db" "$task_id"; then
+        die "Task already exists: $task_id"
+    fi
+
+    local parent_id_sql="NULL"
+    if [[ -n "$parent_id" ]]; then
+        if ! task_exists "$db" "$parent_id"; then
+            die "Parent task not found: $parent_id"
+        fi
+        parent_id_sql="$(sql_literal "$parent_id")"
+    fi
+
+    local title_sql type_sql status_sql
+    title_sql="$(sql_literal "$title")"
+    type_sql="$(sql_literal "$type")"
+    status_sql="$(sql_literal "$status")"
+
+    sqlite3 "$db" <<SQL >/dev/null
+.bail on
+BEGIN IMMEDIATE;
+INSERT INTO tasks (
+  id,
+  parent_id,
+  title,
+  status,
+  type,
+  priority
+) VALUES (
+  $task_id_sql,
+  $parent_id_sql,
+  $title_sql,
+  $status_sql,
+  $type_sql,
+  'medium'
+);
+COMMIT;
+SQL
+
+    printf 'Created task: %s\n' "$task_id"
+}
+
+task_set_status() {
+    local db="$1"
+    local task_id="$2"
+    local status="$3"
+
+    require_tasks_table "$db"
+    validate_task_id "$task_id" "TASK_ID"
+    validate_task_status "$status"
+
+    if ! task_exists "$db" "$task_id"; then
+        die "Task not found: $task_id"
+    fi
+
+    local task_id_sql status_sql
+    task_id_sql="$(sql_literal "$task_id")"
+    status_sql="$(sql_literal "$status")"
+
+    sqlite3 "$db" <<SQL >/dev/null
+.bail on
+BEGIN IMMEDIATE;
+UPDATE tasks
+SET status = $status_sql,
+    updated_at = datetime('now'),
+    started_at = CASE
+        WHEN $status_sql = 'in-progress' AND started_at IS NULL THEN datetime('now')
+        ELSE started_at
+    END,
+    completed_at = CASE
+        WHEN $status_sql = 'done' AND completed_at IS NULL THEN datetime('now')
+        ELSE completed_at
+    END
+WHERE id = $task_id_sql;
+COMMIT;
+SQL
+
+    printf 'Updated task status: %s -> %s\n' "$task_id" "$status"
+}
+
+task_update_title() {
+    local db="$1"
+    local task_id="$2"
+    local title="$3"
+
+    require_tasks_table "$db"
+    validate_task_id "$task_id" "TASK_ID"
+    validate_required_text "$title" "TITLE"
+
+    if ! task_exists "$db" "$task_id"; then
+        die "Task not found: $task_id"
+    fi
+
+    local task_id_sql title_sql
+    task_id_sql="$(sql_literal "$task_id")"
+    title_sql="$(sql_literal "$title")"
+
+    sqlite3 "$db" <<SQL >/dev/null
+.bail on
+BEGIN IMMEDIATE;
+UPDATE tasks
+SET title = $title_sql,
+    updated_at = datetime('now')
+WHERE id = $task_id_sql;
+COMMIT;
+SQL
+
+    printf 'Updated task title: %s\n' "$task_id"
+}
+
+task_archive() {
+    local db="$1"
+    local task_id="$2"
+
+    require_tasks_table "$db"
+    validate_task_id "$task_id" "TASK_ID"
+
+    if ! task_exists "$db" "$task_id"; then
+        die "Task not found: $task_id"
+    fi
+
+    local task_id_sql
+    task_id_sql="$(sql_literal "$task_id")"
+
+    sqlite3 "$db" <<SQL >/dev/null
+.bail on
+BEGIN IMMEDIATE;
+UPDATE tasks
+SET archived_at = COALESCE(archived_at, datetime('now')),
+    updated_at = datetime('now')
+WHERE id = $task_id_sql;
+COMMIT;
+SQL
+
+    printf 'Archived task: %s\n' "$task_id"
+}
+
+cmd_task_add() {
+    [[ $# -ge 3 ]] || die "task-add requires PROJECT_DIR TASK_ID TITLE [TYPE] [STATUS] [PARENT_ID]." "$EXIT_USAGE"
+    [[ $# -le 6 ]] || die "task-add accepts PROJECT_DIR, TASK_ID, TITLE, optional TYPE, optional STATUS, and optional PARENT_ID." "$EXIT_USAGE"
+
+    local project
+    project="$(project_path "$1")"
+
+    local parent_id=""
+    if [[ $# -eq 6 ]]; then
+        parent_id="$6"
+        validate_task_id "$parent_id" "PARENT_ID"
+    fi
+
+    require_sqlite
+    local db
+    db="$(require_initialized_db "$project")"
+    task_add "$db" "$2" "$3" "${4:-feature}" "${5:-planned}" "$parent_id"
+}
+
+cmd_task_set_status() {
+    [[ $# -eq 3 ]] || die "task-set-status requires PROJECT_DIR TASK_ID STATUS." "$EXIT_USAGE"
+
+    local project
+    project="$(project_path "$1")"
+
+    require_sqlite
+    local db
+    db="$(require_initialized_db "$project")"
+    task_set_status "$db" "$2" "$3"
+}
+
+cmd_task_update_title() {
+    [[ $# -eq 3 ]] || die "task-update-title requires PROJECT_DIR TASK_ID TITLE." "$EXIT_USAGE"
+
+    local project
+    project="$(project_path "$1")"
+
+    require_sqlite
+    local db
+    db="$(require_initialized_db "$project")"
+    task_update_title "$db" "$2" "$3"
+}
+
+cmd_task_archive() {
+    [[ $# -eq 2 ]] || die "task-archive requires PROJECT_DIR TASK_ID." "$EXIT_USAGE"
+
+    local project
+    project="$(project_path "$1")"
+
+    require_sqlite
+    local db
+    db="$(require_initialized_db "$project")"
+    task_archive "$db" "$2"
+}
+
 cmd_memory_list() {
     [[ $# -ge 1 ]] || die "memory-list requires PROJECT_DIR [limit]." "$EXIT_USAGE"
     [[ $# -le 2 ]] || die "memory-list accepts PROJECT_DIR and optional limit." "$EXIT_USAGE"
@@ -924,6 +1204,18 @@ main() {
         show)
             [[ $# -ge 1 ]] || show_usage_error
             cmd_show "$@"
+            ;;
+        task-add)
+            cmd_task_add "$@"
+            ;;
+        task-set-status)
+            cmd_task_set_status "$@"
+            ;;
+        task-update-title)
+            cmd_task_update_title "$@"
+            ;;
+        task-archive)
+            cmd_task_archive "$@"
             ;;
         memory-list)
             cmd_memory_list "$@"

@@ -1,7 +1,7 @@
 {
   "name": "engineering-discipline",
-  "version": "0.1.12",
-  "description": "Codex-native engineering discipline skills and advisory hooks for risk routing, PRDs, verified implementation, regression review, living docs, architecture, TaskManager wrapper operation, read-only TaskManager runtime visibility, manual TaskManager memory operations, Laravel, and Filament conventions.",
+  "version": "0.1.13",
+  "description": "Codex-native engineering discipline skills and advisory hooks for risk routing, PRDs, verified implementation, regression review, living docs, architecture, TaskManager wrapper operation, read-only TaskManager runtime visibility, manual TaskManager memory and task operations, Laravel, and Filament conventions.",
   "author": {
     "name": "afonseca69"
   },
@@ -14,7 +14,7 @@
   "interface": {
     "displayName": "Engineering Discipline",
     "shortDescription": "Risk routing, PRDs, verified implementation, architecture, and living docs for Codex.",
-    "longDescription": "A Codex-native adaptation of disciplined engineering workflows for PRDs, implementation, regression review, architecture evolution, Scribe docs, manual TaskManager wrapper operation, read-only TaskManager runtime visibility, explicit manual TaskManager memory operations, Laravel, and Filament. Default hooks are advisory-only; enforcing hooks are optional.",
+    "longDescription": "A Codex-native adaptation of disciplined engineering workflows for PRDs, implementation, regression review, architecture evolution, Scribe docs, manual TaskManager wrapper operation, read-only TaskManager runtime visibility, explicit manual TaskManager memory and task operations, Laravel, and Filament. Default hooks are advisory-only; enforcing hooks are optional.",
     "developerName": "afonseca69",
     "category": "Development",
     "websiteURL": "https://github.com/afonseca69/plugin-codex"

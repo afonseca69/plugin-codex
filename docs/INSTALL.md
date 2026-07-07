@@ -45,6 +45,7 @@ Expected skills:
 - `taskmanager-engine-status`
 - `taskmanager-engine-next`
 - `taskmanager-engine-show`
+- `taskmanager-engine-task`
 - `taskmanager-engine-memory`
 - `taskmanager-engine-export`
 - `taskmanager-engine-test`
@@ -66,8 +67,9 @@ plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-en
 ```
 
 The wrapper is `bin/taskmanager-engine.sh` inside that directory. It is manual only and supports
-safe `init`, `status`, `next`, `show`, memory list/show/search/add/deprecate, `export-json`, and
-`run-sql-tests` commands. Only `init`, `memory-add`, and `memory-deprecate` mutate
+safe `init`, `status`, `next`, `show`, task add/status/title/archive,
+memory list/show/search/add/deprecate, `export-json`, and `run-sql-tests` commands. Only `init`,
+the explicit task commands, `memory-add`, and `memory-deprecate` mutate
 `PROJECT_DIR/.taskmanager`; read-only commands open the initialized database read-only. The
 `taskmanager-engine-*` skills are first-class Codex guides for those manual operations. These
 materials do not enable strict hooks, run automatic agents, auto-run TaskManager, or register

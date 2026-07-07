@@ -1,7 +1,7 @@
 # Verification
 
-For the `0.1.12` release readiness and parity status checkpoint, see
-[`docs/RELEASE-READINESS-0.1.12.md`](RELEASE-READINESS-0.1.12.md).
+For the `0.1.13` release readiness and parity status checkpoint, see
+[`docs/RELEASE-READINESS-0.1.13.md`](RELEASE-READINESS-0.1.13.md).
 
 ## Static checks
 
@@ -32,7 +32,7 @@ find plugins/engineering-discipline/skills -name SKILL.md -print | sort
 find . -type d -name __pycache__ -print
 ```
 
-For Phase 5F, confirm the sorted skill list includes:
+For Phase 5G, confirm the sorted skill list includes:
 
 ```text
 plugins/engineering-discipline/skills/taskmanager-engine-export/SKILL.md
@@ -41,6 +41,7 @@ plugins/engineering-discipline/skills/taskmanager-engine-memory/SKILL.md
 plugins/engineering-discipline/skills/taskmanager-engine-next/SKILL.md
 plugins/engineering-discipline/skills/taskmanager-engine-show/SKILL.md
 plugins/engineering-discipline/skills/taskmanager-engine-status/SKILL.md
+plugins/engineering-discipline/skills/taskmanager-engine-task/SKILL.md
 plugins/engineering-discipline/skills/taskmanager-engine-test/SKILL.md
 ```
 
@@ -72,6 +73,14 @@ ENGINE=plugins/engineering-discipline/skills/taskmanager-lite/references/taskman
 TMP=$(mktemp -d)
 "$ENGINE" init "$TMP"
 test -f "$TMP/.taskmanager/taskmanager.db"
+"$ENGINE" task-add "$TMP" 1 "Smoke parent task" feature planned
+"$ENGINE" task-add "$TMP" 1.1 "Smoke child task" task planned 1
+"$ENGINE" show "$TMP" tasks
+"$ENGINE" show "$TMP" task 1.1
+"$ENGINE" task-set-status "$TMP" 1.1 in-progress
+"$ENGINE" task-update-title "$TMP" 1.1 "Smoke child task updated"
+"$ENGINE" next "$TMP"
+"$ENGINE" task-archive "$TMP" 1.1
 "$ENGINE" memory-list "$TMP"
 MEMORY_ID=$("$ENGINE" memory-add "$TMP" decision "Test memory" "This is a test memory" 3 0.9 | sed 's/^Created memory: //')
 "$ENGINE" memory-list "$TMP"
@@ -92,14 +101,14 @@ MEMORY_ID=$("$ENGINE" memory-add "$TMP" decision "Test memory" "This is a test m
 rm -rf "$TMP"
 ```
 
-Latest local result for plugin `0.1.12`: `test_sql_queries.sh` passed 285/0,
-`test_lifecycle_e2e.sh` passed 30/0, and `test_wrapper_cli.sh` passed 77/0.
+Latest local result for plugin `0.1.13`: `test_sql_queries.sh` passed 285/0,
+`test_lifecycle_e2e.sh` passed 30/0, and `test_wrapper_cli.sh` passed 118/0.
 
 Passing these suites validates the standalone copied SQLite artifacts and the limited manual
-wrapper only. Phase 5F adds first-class Codex skill entry points and manual memory list/show/search
-plus explicit memory-add and memory-deprecate wrapper commands for initialized engine state; it
-does not claim full TaskManager memory/runtime parity. Full parity still requires broader Codex
-command/runtime implementation and tests.
+wrapper only. Phase 5G adds first-class Codex skill entry points and explicit manual
+task-add/status/title/archive wrapper commands for initialized engine state; it does not claim
+full TaskManager task/runtime parity. Full parity still requires broader Codex command/runtime
+implementation and tests.
 
 ## Extended advisory hooks
 
@@ -132,7 +141,7 @@ Do not claim strict hooks are production-ready until these checks pass in the ta
 
 ## Live hook smoke-test status
 
-Last live hook smoke test was verified on WSL2 with Codex CLI `0.142.5` using installed plugin cache `0.1.3`. The 0.1.4 skill-only update, 0.1.5 reference/template update, 0.1.7 agent/persona reference update, 0.1.8 passive TaskManager engine artifact update, 0.1.9 manual TaskManager wrapper update, 0.1.10 manual wrapper skill update, 0.1.11 read-only TaskManager visibility update, and 0.1.12 manual TaskManager memory update did not change default hook behavior. Version 0.1.6 adds optional extended advisory hooks, but does not change `hooks/hooks.json`:
+Last live hook smoke test was verified on WSL2 with Codex CLI `0.142.5` using installed plugin cache `0.1.3`. The 0.1.4 skill-only update, 0.1.5 reference/template update, 0.1.7 agent/persona reference update, 0.1.8 passive TaskManager engine artifact update, 0.1.9 manual TaskManager wrapper update, 0.1.10 manual wrapper skill update, 0.1.11 read-only TaskManager visibility update, 0.1.12 manual TaskManager memory update, and 0.1.13 manual TaskManager task update did not change default hook behavior. Version 0.1.6 adds optional extended advisory hooks, but does not change `hooks/hooks.json`:
 
 - marketplace added from local repository;
 - `engineering-discipline@plugin-codex` installed and enabled;
