@@ -11,6 +11,28 @@
 Version `0.1.13` is ready as a Codex-native plugin release checkpoint for Phase
 5G. This is not a claim of full upstream parity with `mwguerra/plugins`.
 
+## Post-Merge Main Checkpoint
+
+After PR #13 was merged, `main` and `origin/main` were rechecked at
+`d9a91d0`. The plugin manifest and installed cache both report version
+`0.1.13`, and both the repository copy and installed cache contain 29
+`SKILL.md` files.
+
+Fresh post-merge validation passed for:
+
+- repository JSON manifests, hook Bash syntax, `json_value.py` AST parsing,
+  `git diff --check`, and `__pycache__` discovery;
+- repository TaskManager SQL tests `285/0`, lifecycle tests `30/0`, wrapper
+  tests `118/0`, root-level `run-sql-tests`, disposable task smoke, and
+  disposable memory smoke;
+- installed cache JSON manifests, hook Bash syntax, `json_value.py` AST
+  parsing, TaskManager SQL tests `285/0`, lifecycle tests `30/0`, and wrapper
+  tests `118/0`.
+
+This post-merge checkpoint does not start Phase 5H, edit hooks, enable hooks,
+or add runtime parity, auto-run, background job, scheduler, agent, subagent, or
+done-gate behavior.
+
 ## Added In 0.1.13
 
 - Explicit mutating manual task commands:
