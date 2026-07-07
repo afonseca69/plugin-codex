@@ -13,6 +13,7 @@ operations:
 - `taskmanager-engine-status`
 - `taskmanager-engine-next`
 - `taskmanager-engine-show`
+- `taskmanager-engine-memory`
 - `taskmanager-engine-export`
 - `taskmanager-engine-test`
 
@@ -81,6 +82,33 @@ Supported views are `overview`, `tasks [limit]`, `task TASK_ID`,
 `verifications [TASK_ID]`, and `regressions [TARGET_ID]`. The command requires
 an explicit project path and opens the database with `sqlite3 -readonly`.
 
+List, show, and search memories without mutating data:
+
+```bash
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh memory-list /path/to/project
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh memory-list /path/to/project 50
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh memory-show /path/to/project M-001
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh memory-search /path/to/project "database convention"
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh memory-search /path/to/project "database convention" 50
+```
+
+`memory-search` prefers the `memories_fts` table when available. If FTS is
+unavailable or rejects the query syntax, it falls back to `LIKE` over title,
+body, and tags.
+
+Add or deprecate one memory through explicit database mutation:
+
+```bash
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh memory-add /path/to/project decision "Prefer small PRs" "Keep changes focused and verified." 4 0.9
+plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/bin/taskmanager-engine.sh memory-deprecate /path/to/project M-001 "Superseded by current project guidance"
+```
+
+`memory-add` validates the memory type, title, body, importance, and confidence,
+then inserts one active row with the next `M-NNN` id. `memory-deprecate` sets
+`status = 'deprecated'` and never deletes the memory. The current schema has no
+clean deprecation-reason field, so the reason argument is validated for operator
+intent but not stored.
+
 Print a JSON export of core tables without mutating data:
 
 ```bash
@@ -96,11 +124,16 @@ plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-en
 ## Safety Limits
 
 - Writes are limited to `PROJECT_DIR/.taskmanager/` for `init`.
-- `status`, `next`, `show`, and `export-json` are read-only.
+- `status`, `next`, `show`, `memory-list`, `memory-show`, `memory-search`, and
+  `export-json` are read-only.
+- `memory-add` and `memory-deprecate` write only to
+  `PROJECT_DIR/.taskmanager/taskmanager.db`.
 - `run-sql-tests` delegates to the copied test scripts, which use disposable
   `mktemp` directories.
 - The wrapper does not implement upstream TaskManager `plan`, `run`, `verify`,
-  `update`, `memory`, or `research` command behavior.
+  `update`, full `memory`, or `research` command behavior.
 - The `show` command is visibility only; it does not execute tasks, update
   status, write verification rows, write logs, or claim upstream `show` parity.
+- The memory commands do not run research, auto-classify, update, supersede, or
+  reconcile memory conflicts.
 - Full upstream TaskManager runtime parity is not claimed.

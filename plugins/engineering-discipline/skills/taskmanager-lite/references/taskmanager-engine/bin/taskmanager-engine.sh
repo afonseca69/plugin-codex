@@ -39,6 +39,16 @@ Manual commands:
   next [PROJECT_DIR]        Show rows from v_next_task without mutating data.
   show PROJECT_DIR [view] [args...]
                             Read safe runtime visibility views without mutating data.
+  memory-list PROJECT_DIR [limit]
+                            List memory id, type, importance, confidence, status, and title.
+  memory-show PROJECT_DIR MEMORY_ID
+                            Show one memory's useful fields without mutating data.
+  memory-search PROJECT_DIR QUERY [limit]
+                            Search memories with FTS when available, falling back to LIKE.
+  memory-add PROJECT_DIR TYPE TITLE BODY [IMPORTANCE] [CONFIDENCE]
+                            Explicitly add one manual memory row.
+  memory-deprecate PROJECT_DIR MEMORY_ID REASON
+                            Mark one memory deprecated without deleting it.
   export-json [PROJECT_DIR] Print a JSON export of core tables without mutating data.
   run-sql-tests             Run the copied SQL query and lifecycle test scripts.
   help                      Show this help.
@@ -60,6 +70,8 @@ Safety notes:
   - init refuses to overwrite an existing PROJECT_DIR/.taskmanager/taskmanager.db.
   - Read-only commands require an initialized PROJECT_DIR/.taskmanager/taskmanager.db.
   - show requires an explicit PROJECT_DIR and uses sqlite3 read-only access.
+  - memory-add and memory-deprecate mutate only PROJECT_DIR/.taskmanager/taskmanager.db.
+  - Memory commands do not auto-classify, research, supersede, or reconcile conflicts.
 
 Exit codes:
   0    success
@@ -154,6 +166,62 @@ validate_lookup_id() {
             die "$label contains unsupported characters; allowed: A-Z a-z 0-9 . _ : -" "$EXIT_USAGE"
             ;;
     esac
+}
+
+sql_literal() {
+    local value="$1"
+    local escaped
+    escaped="$(printf '%s' "$value" | sed "s/'/''/g")"
+    printf "'%s'" "$escaped"
+}
+
+like_escape() {
+    local value="$1"
+    value="${value//\\/\\\\}"
+    value="${value//%/\\%}"
+    value="${value//_/\\_}"
+    printf '%s' "$value"
+}
+
+validate_required_text() {
+    local value="$1"
+    local label="$2"
+
+    [[ -n "$value" ]] || die "$label must not be empty." "$EXIT_USAGE"
+}
+
+memory_types() {
+    printf 'constraint decision bugfix workaround convention architecture process integration anti-pattern other\n'
+}
+
+validate_memory_type() {
+    local value="$1"
+    case "$value" in
+        constraint|decision|bugfix|workaround|convention|architecture|process|integration|anti-pattern|other)
+            ;;
+        *)
+            die "TYPE must be one of: $(memory_types)" "$EXIT_USAGE"
+            ;;
+    esac
+}
+
+validate_importance() {
+    local value="$1"
+
+    [[ "$value" =~ ^[0-9]+$ ]] || die "IMPORTANCE must be an integer between 1 and 5." "$EXIT_USAGE"
+    (( value >= 1 && value <= 5 )) || die "IMPORTANCE must be between 1 and 5." "$EXIT_USAGE"
+}
+
+validate_confidence() {
+    local value="$1"
+
+    [[ "$value" =~ ^(0([.][0-9]+)?|1([.]0+)?)$ ]] || die "CONFIDENCE must be a number between 0 and 1." "$EXIT_USAGE"
+}
+
+require_memories_table() {
+    local db="$1"
+
+    table_exists "$db" "memories" || die "memories table does not exist in $db."
 }
 
 show_usage_error() {
@@ -377,6 +445,288 @@ LIMIT 20;"
     fi
 }
 
+memory_list() {
+    local db="$1"
+    local limit
+    limit="$(parse_limit "${2:-20}" "memory-list limit")"
+
+    require_memories_table "$db"
+    [[ "$(table_count "$db" "memories")" != "0" ]] || { printf 'No memories found.\n'; return 0; }
+
+    printf 'Memories\n'
+    sqlite3 -readonly -header -column "$db" "
+SELECT id, kind AS type, importance, confidence, status, title
+FROM memories
+ORDER BY updated_at DESC, created_at DESC, id
+LIMIT $limit;"
+}
+
+memory_show() {
+    local db="$1"
+    local memory_id="$2"
+
+    validate_lookup_id "$memory_id" "MEMORY_ID"
+    require_memories_table "$db"
+
+    local memory_id_sql
+    memory_id_sql="$(sql_literal "$memory_id")"
+    [[ "$(sqlite3 -readonly "$db" "SELECT COUNT(*) FROM memories WHERE id = $memory_id_sql;")" == "1" ]] || die "Memory not found: $memory_id"
+
+    printf 'Memory %s\n' "$memory_id"
+    sqlite3 -readonly -header -column "$db" "
+SELECT
+  id,
+  title,
+  kind AS type,
+  status,
+  importance,
+  confidence,
+  why_important,
+  body,
+  source_type,
+  COALESCE(source_name, '') AS source_name,
+  COALESCE(source_via, '') AS source_via,
+  auto_updatable,
+  COALESCE(superseded_by, '') AS superseded_by,
+  scope,
+  tags,
+  links,
+  use_count,
+  COALESCE(last_used_at, '') AS last_used_at,
+  COALESCE(last_conflict_at, '') AS last_conflict_at,
+  conflict_resolutions,
+  created_at,
+  updated_at
+FROM memories
+WHERE id = $memory_id_sql;"
+}
+
+memory_search_like() {
+    local db="$1"
+    local query="$2"
+    local limit="$3"
+    local pattern_sql
+    pattern_sql="$(sql_literal "%$(like_escape "$query")%")"
+
+    sqlite3 -readonly -header -column "$db" "
+SELECT id, kind AS type, importance, confidence, status, title
+FROM memories
+WHERE title LIKE $pattern_sql ESCAPE '\'
+   OR body LIKE $pattern_sql ESCAPE '\'
+   OR tags LIKE $pattern_sql ESCAPE '\'
+ORDER BY updated_at DESC, created_at DESC, id
+LIMIT $limit;"
+}
+
+memory_search_fts() {
+    local db="$1"
+    local query="$2"
+    local limit="$3"
+    local query_sql
+    query_sql="$(sql_literal "$query")"
+
+    sqlite3 -readonly -header -column "$db" "
+SELECT m.id, m.kind AS type, m.importance, m.confidence, m.status, m.title
+FROM memories_fts
+JOIN memories m ON m.rowid = memories_fts.rowid
+WHERE memories_fts MATCH $query_sql
+ORDER BY bm25(memories_fts), m.updated_at DESC, m.created_at DESC, m.id
+LIMIT $limit;"
+}
+
+memory_search() {
+    local db="$1"
+    local query="$2"
+    local limit
+    limit="$(parse_limit "${3:-20}" "memory-search limit")"
+
+    validate_required_text "$query" "QUERY"
+    require_memories_table "$db"
+    [[ "$(table_count "$db" "memories")" != "0" ]] || { printf 'No memories found.\n'; return 0; }
+
+    local output=""
+    if table_exists "$db" "memories_fts"; then
+        if output="$(memory_search_fts "$db" "$query" "$limit" 2>/dev/null)"; then
+            if [[ -n "$output" ]]; then
+                printf 'Memories\n%s\n' "$output"
+            else
+                printf 'No matching memories found.\n'
+            fi
+            return 0
+        fi
+    fi
+
+    output="$(memory_search_like "$db" "$query" "$limit")"
+    if [[ -n "$output" ]]; then
+        printf 'Memories\n%s\n' "$output"
+    else
+        printf 'No matching memories found.\n'
+    fi
+}
+
+memory_add() {
+    local db="$1"
+    local type="$2"
+    local title="$3"
+    local body="$4"
+    local importance="${5:-3}"
+    local confidence="${6:-0.8}"
+
+    require_memories_table "$db"
+    validate_memory_type "$type"
+    validate_required_text "$title" "TITLE"
+    validate_required_text "$body" "BODY"
+    validate_importance "$importance"
+    validate_confidence "$confidence"
+
+    local type_sql title_sql body_sql why_sql source_name_sql source_via_sql
+    type_sql="$(sql_literal "$type")"
+    title_sql="$(sql_literal "$title")"
+    body_sql="$(sql_literal "$body")"
+    why_sql="$(sql_literal "Manual memory added explicitly through taskmanager-engine.sh memory-add.")"
+    source_name_sql="$(sql_literal "taskmanager-engine.sh")"
+    source_via_sql="$(sql_literal "memory-add")"
+
+    local created_id
+    created_id="$(sqlite3 "$db" <<SQL
+.bail on
+BEGIN IMMEDIATE;
+CREATE TEMP TABLE created_memory_id(id TEXT);
+INSERT INTO created_memory_id(id)
+SELECT 'M-' || printf('%03d', COALESCE(MAX(CASE WHEN id GLOB 'M-[0-9]*' THEN CAST(SUBSTR(id, 3) AS INTEGER) END), 0) + 1)
+FROM memories;
+INSERT INTO memories (
+  id,
+  title,
+  kind,
+  why_important,
+  body,
+  source_type,
+  source_name,
+  source_via,
+  auto_updatable,
+  importance,
+  confidence,
+  status,
+  scope,
+  tags,
+  links
+)
+SELECT
+  id,
+  $title_sql,
+  $type_sql,
+  $why_sql,
+  $body_sql,
+  'command',
+  $source_name_sql,
+  $source_via_sql,
+  0,
+  $importance,
+  $confidence,
+  'active',
+  '{}',
+  '[]',
+  '[]'
+FROM created_memory_id;
+COMMIT;
+SELECT id FROM created_memory_id;
+SQL
+)"
+
+    printf 'Created memory: %s\n' "$created_id"
+}
+
+memory_deprecate() {
+    local db="$1"
+    local memory_id="$2"
+    local reason="$3"
+
+    validate_lookup_id "$memory_id" "MEMORY_ID"
+    validate_required_text "$reason" "REASON"
+    require_memories_table "$db"
+
+    local memory_id_sql
+    memory_id_sql="$(sql_literal "$memory_id")"
+    [[ "$(sqlite3 -readonly "$db" "SELECT COUNT(*) FROM memories WHERE id = $memory_id_sql;")" == "1" ]] || die "Memory not found: $memory_id"
+
+    sqlite3 "$db" <<SQL >/dev/null
+.bail on
+BEGIN IMMEDIATE;
+UPDATE memories
+SET status = 'deprecated',
+    updated_at = datetime('now')
+WHERE id = $memory_id_sql;
+COMMIT;
+SQL
+
+    printf 'Deprecated memory: %s\n' "$memory_id"
+    printf 'Note: deprecation reason is not stored; schema has status/superseded fields but no clean deprecation reason field.\n'
+}
+
+cmd_memory_list() {
+    [[ $# -ge 1 ]] || die "memory-list requires PROJECT_DIR [limit]." "$EXIT_USAGE"
+    [[ $# -le 2 ]] || die "memory-list accepts PROJECT_DIR and optional limit." "$EXIT_USAGE"
+
+    local project
+    project="$(project_path "$1")"
+
+    require_sqlite
+    local db
+    db="$(require_initialized_db "$project")"
+    memory_list "$db" "${2:-20}"
+}
+
+cmd_memory_show() {
+    [[ $# -eq 2 ]] || die "memory-show requires PROJECT_DIR MEMORY_ID." "$EXIT_USAGE"
+
+    local project
+    project="$(project_path "$1")"
+
+    require_sqlite
+    local db
+    db="$(require_initialized_db "$project")"
+    memory_show "$db" "$2"
+}
+
+cmd_memory_search() {
+    [[ $# -ge 2 ]] || die "memory-search requires PROJECT_DIR QUERY [limit]." "$EXIT_USAGE"
+    [[ $# -le 3 ]] || die "memory-search accepts PROJECT_DIR, QUERY, and optional limit." "$EXIT_USAGE"
+
+    local project
+    project="$(project_path "$1")"
+
+    require_sqlite
+    local db
+    db="$(require_initialized_db "$project")"
+    memory_search "$db" "$2" "${3:-20}"
+}
+
+cmd_memory_add() {
+    [[ $# -ge 4 ]] || die "memory-add requires PROJECT_DIR TYPE TITLE BODY [IMPORTANCE] [CONFIDENCE]." "$EXIT_USAGE"
+    [[ $# -le 6 ]] || die "memory-add accepts PROJECT_DIR, TYPE, TITLE, BODY, optional IMPORTANCE, and optional CONFIDENCE." "$EXIT_USAGE"
+
+    local project
+    project="$(project_path "$1")"
+
+    require_sqlite
+    local db
+    db="$(require_initialized_db "$project")"
+    memory_add "$db" "$2" "$3" "$4" "${5:-3}" "${6:-0.8}"
+}
+
+cmd_memory_deprecate() {
+    [[ $# -eq 3 ]] || die "memory-deprecate requires PROJECT_DIR MEMORY_ID REASON." "$EXIT_USAGE"
+
+    local project
+    project="$(project_path "$1")"
+
+    require_sqlite
+    local db
+    db="$(require_initialized_db "$project")"
+    memory_deprecate "$db" "$2" "$3"
+}
+
 cmd_show() {
     [[ $# -ge 1 ]] || show_usage_error
 
@@ -574,6 +924,21 @@ main() {
         show)
             [[ $# -ge 1 ]] || show_usage_error
             cmd_show "$@"
+            ;;
+        memory-list)
+            cmd_memory_list "$@"
+            ;;
+        memory-show)
+            cmd_memory_show "$@"
+            ;;
+        memory-search)
+            cmd_memory_search "$@"
+            ;;
+        memory-add)
+            cmd_memory_add "$@"
+            ;;
+        memory-deprecate)
+            cmd_memory_deprecate "$@"
             ;;
         export-json)
             [[ $# -le 1 ]] || die "export-json accepts at most one PROJECT_DIR argument." "$EXIT_USAGE"

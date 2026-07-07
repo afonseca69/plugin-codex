@@ -37,7 +37,8 @@ execution or direct compatibility with the original agent runtime.
 - No changes to `hooks/hooks.json`.
 - No strict hook enablement.
 - No automatic TaskManager agent runtime.
-- No mutating TaskManager runtime commands.
+- No broad mutating TaskManager runtime commands beyond explicitly documented
+  manual memory operations.
 - No full upstream TaskManager dashboard, memory engine, or command parity.
 - No external integrations, background jobs, or unrelated tooling.
 

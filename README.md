@@ -75,6 +75,7 @@ The marketplace points to `./plugins/engineering-discipline`.
 | `taskmanager-engine-status` | Read status from `PROJECT_DIR/.taskmanager/taskmanager.db` through the manual wrapper. |
 | `taskmanager-engine-next` | Show next available tasks through the read-only manual wrapper. |
 | `taskmanager-engine-show` | Inspect read-only TaskManager overview, task, milestone, memory, deferral, verification, and regression views. |
+| `taskmanager-engine-memory` | Run safe manual memory list, show, search, add, and deprecate operations through the manual wrapper. |
 | `taskmanager-engine-export` | Export JSON-style core TaskManager data through the read-only manual wrapper. |
 | `taskmanager-engine-test` | Run copied TaskManager SQL, lifecycle, and wrapper tests. |
 | `laravel-conventions` | Apply Laravel/Filament/Pest conventions safely when the target project is Laravel. |
@@ -105,15 +106,20 @@ The TaskManager engine artifacts live at
 `plugins/engineering-discipline/skills/taskmanager-lite/references/taskmanager-engine/`. They
 include upstream schema/config, migrations, query catalog, copied SQL test assets, and a manual
 wrapper at `bin/taskmanager-engine.sh`. The wrapper supports explicit `init`, `status`, `next`,
-`show`, `export-json`, and `run-sql-tests` commands, but it is not registered as a Codex command
-and is not a full TaskManager runtime. The `show` command is read-only visibility for initialized
-engine state; it does not execute tasks or update TaskManager data. The `taskmanager-engine-*`
-skills are first-class Codex operator guides for that wrapper; they do not add hidden runtime
-behavior or full upstream command parity.
+`show`, `memory-list`, `memory-show`, `memory-search`, `memory-add`, `memory-deprecate`,
+`export-json`, and `run-sql-tests` commands, but it is not registered as a Codex command and is
+not a full TaskManager runtime. The `show` command is read-only visibility for initialized engine
+state; it does not execute tasks or update TaskManager data. The memory commands are manual and
+bounded to the initialized SQLite database; only `memory-add` and `memory-deprecate` mutate
+`PROJECT_DIR/.taskmanager/taskmanager.db`. The `taskmanager-engine-*` skills are first-class
+Codex operator guides for that wrapper; they do not add hidden runtime behavior or full upstream
+command parity.
 Future TaskManager runtime parity is scoped in
 [`docs/PHASE5D-TASKMANAGER-RUNTIME-DESIGN.md`](docs/PHASE5D-TASKMANAGER-RUNTIME-DESIGN.md).
 The implemented read-only Phase 5E slice is recorded in
 [`docs/PHASE5E-TASKMANAGER-READONLY-RUNTIME.md`](docs/PHASE5E-TASKMANAGER-READONLY-RUNTIME.md).
+The implemented manual memory Phase 5F slice is recorded in
+[`docs/PHASE5F-TASKMANAGER-MEMORY.md`](docs/PHASE5F-TASKMANAGER-MEMORY.md).
 
 ## Hooks policy
 
@@ -147,11 +153,12 @@ NOTICE.md
 
 ## Verification status
 
-See [`docs/RELEASE-READINESS-0.1.11.md`](docs/RELEASE-READINESS-0.1.11.md) for the `0.1.11`
+See [`docs/RELEASE-READINESS-0.1.12.md`](docs/RELEASE-READINESS-0.1.12.md) for the `0.1.12`
 release readiness and parity status checkpoint.
 
-Version `0.1.11` adds safe read-only TaskManager runtime visibility through the manual
-`show` wrapper command and the `taskmanager-engine-show` skill. It has been checked for:
+Version `0.1.12` adds safe manual TaskManager memory operations through explicit
+`memory-list`, `memory-show`, `memory-search`, `memory-add`, and `memory-deprecate` wrapper
+commands and the `taskmanager-engine-memory` skill. It has been checked for:
 
 - valid JSON manifests;
 - valid skill frontmatter presence;
@@ -162,13 +169,16 @@ Version `0.1.11` adds safe read-only TaskManager runtime visibility through the 
 - Python helper syntax;
 - no generated `__pycache__` directories;
 - standalone copied TaskManager SQL tests passed locally with `sqlite3`: `test_sql_queries.sh` 285/0 and `test_lifecycle_e2e.sh` 30/0.
-- wrapper smoke/regression tests passed locally with `sqlite3`: `test_wrapper_cli.sh` 50/0,
-  including `init`, `status`, `next`, `show`, `export-json`, and wrapper-driven `run-sql-tests`.
+- wrapper smoke/regression tests passed locally with `sqlite3`: `test_wrapper_cli.sh` 77/0,
+  including `init`, `status`, `next`, `show`, memory operations, `export-json`, and
+  wrapper-driven `run-sql-tests`.
 
 Hook behavior is unchanged from `0.1.9`: default hooks remain advisory-only, optional extended
 advisory hooks remain opt-in, and strict hooks remain opt-in. The TaskManager wrapper is manual
 only. The `taskmanager-engine-*` skills describe manual wrapper usage and do not claim full
-upstream TaskManager runtime parity. Before relying on enforcing hooks globally, still validate
+upstream TaskManager runtime parity. `memory-add` and `memory-deprecate` are explicit database
+mutations only; they do not implement plan/run/verify/update/research or full upstream memory
+parity. Before relying on enforcing hooks globally, still validate
 them inside your target live Codex workflow and review them in `/hooks`.
 
 ## Attribution and license

@@ -9,7 +9,8 @@ tasks. Phase 5B adds a small manual wrapper for safe local initialization,
 read-only inspection, JSON export, and copied SQL test execution. Phase 5C adds
 first-class Codex skills that guide explicit use of that manual wrapper. Phase
 5E adds a read-only `show` wrapper command and skill for runtime visibility over
-initialized engine state.
+initialized engine state. Phase 5F adds explicit manual memory list/show/search,
+add, and deprecate commands plus a first-class memory operation skill.
 
 ## Contents
 
@@ -58,6 +59,11 @@ bin/taskmanager-engine.sh init /path/to/project
 bin/taskmanager-engine.sh status /path/to/project
 bin/taskmanager-engine.sh next /path/to/project
 bin/taskmanager-engine.sh show /path/to/project
+bin/taskmanager-engine.sh memory-list /path/to/project
+bin/taskmanager-engine.sh memory-show /path/to/project M-001
+bin/taskmanager-engine.sh memory-search /path/to/project query
+bin/taskmanager-engine.sh memory-add /path/to/project decision "Title" "Body" 3 0.9
+bin/taskmanager-engine.sh memory-deprecate /path/to/project M-001 "reason"
 bin/taskmanager-engine.sh export-json /path/to/project
 bin/taskmanager-engine.sh run-sql-tests
 ```
@@ -67,10 +73,17 @@ bin/taskmanager-engine.sh run-sql-tests
 `config.json` if missing, and creates `logs/`. It refuses to overwrite an
 existing `.taskmanager/taskmanager.db`.
 
-`status`, `next`, `show`, and `export-json` require an initialized project and
-do not mutate the database. `show` requires an explicit project path and
+`status`, `next`, `show`, `memory-list`, `memory-show`, `memory-search`, and
+`export-json` require an initialized project and do not mutate the database.
+`show` requires an explicit project path and
 supports read-only overview, task list, task detail, milestone, memory,
 deferral, verification, and regression views.
+`memory-add` and `memory-deprecate` require an explicit project path and mutate
+only `PROJECT_DIR/.taskmanager/taskmanager.db`. `memory-add` inserts one active
+memory row and relies on existing schema triggers for FTS. `memory-deprecate`
+sets `status = 'deprecated'` without deleting the memory; the schema has no
+clean deprecation-reason field, so the wrapper reports that limitation instead
+of overloading unrelated fields.
 `run-sql-tests` delegates to the copied test scripts and uses their disposable
 temp state.
 
@@ -85,6 +98,7 @@ operations:
 - `taskmanager-engine-status`
 - `taskmanager-engine-next`
 - `taskmanager-engine-show`
+- `taskmanager-engine-memory`
 - `taskmanager-engine-export`
 - `taskmanager-engine-test`
 
@@ -132,12 +146,12 @@ bash tests/test_wrapper_cli.sh
 
 Passing these tests validates the copied SQLite artifacts as standalone files and the limited
 manual wrapper.
-Latest local artifact result for Phase 5E: `test_sql_queries.sh` passed 285/0,
-`test_lifecycle_e2e.sh` passed 30/0, and `test_wrapper_cli.sh` passed 50/0
+Latest local artifact result for Phase 5F: `test_sql_queries.sh` passed 285/0,
+`test_lifecycle_e2e.sh` passed 30/0, and `test_wrapper_cli.sh` passed 77/0
 while also running the copied SQL suites through `run-sql-tests`.
 
 This does not prove full Codex TaskManager runtime parity. The port still does
 not provide Codex command registration, automatic agents, hook-driven execution,
-or the full upstream command set. Phase 5E adds only read-only runtime
-visibility for initialized copied engine state; mutating TaskManager workflows
-remain outside this port.
+or the full upstream command set. Phase 5F adds only safe manual memory
+operations for initialized copied engine state; plan/run/verify/update/research
+and full upstream memory workflows remain outside this port.
